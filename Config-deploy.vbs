@@ -12,9 +12,11 @@ Set objSe = crt.Session
 Set objW = crt.Window
 Set objDictionary = CreateObject("Scripting.Dictionary")
 
+'File containing a list of Router IPs to perform the change on. One IP per line.
 HOSTIP = objD.Prompt("Enter folder name and Path to the hosts file","Folder Name & Path","U:\script\PHOTO-ACL\ACL-IP.txt")
 Set SwitchIP = FSO.opentextfile(HOSTIP, ForReading, False)
 
+'File containing a list of commands to perform on each router. One command per line.
 CommandsFile = objD.Prompt("Enter folder name and Path to the commands file","Folder Name & Path","U:\script\PHOTO-ACL\Commands.txt")
 Set Config = FSO.opentextfile(CommandsFile, ForReading, False)
 
