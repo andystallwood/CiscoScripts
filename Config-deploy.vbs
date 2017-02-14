@@ -19,7 +19,7 @@ CommandsFile = objD.Prompt("Enter folder name and Path to the commands file","Fo
 Set Config = FSO.opentextfile(CommandsFile, ForReading, False)
 
 User = objD.Prompt("Enter YOUR Username To Get into device"&Chr(13)&Chr(13)&_
-"Same username used for all devices"," ","609589029")
+"Same username used for all devices"," ","xxxxxxxxxx")
 
 Pass = objD.Prompt("Enter password To Get into device"&Chr(13)&Chr(13)&_
 "Password must be the same for all devices!"," ","xxx", TRUE)
