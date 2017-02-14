@@ -1,0 +1,5 @@
+COMMAND,PROMPT AFTER COMMAND
+ip access-list extended TESTAFS2,config-ext-nacl
+ip access-list extended TESTAFS3,config-ext-nacl
+no ip access-list extended TESTAFS2,config
+no ip access-list extended TESTAFS3,config
