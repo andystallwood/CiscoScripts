@@ -75,7 +75,7 @@ While Not SwitchIP.atEndOfStream
 		aclExists = objSc.WaitForString("Extended",5)
 		if aclExists = TRUE then
 			objSc.Send "conf t" & VbCr 
-			objSc.WaitForString "(config" : objSc.WaitForString ")#" '<----------------------Command Check
+			objSc.WaitForString "(config)#" '<----------------------Prompt Check
 			'<---- Read each config line in turn from the CSV file and send to the device
 			ConfigLine = Config.ReadLine 'Read Header Row of CSV file
 			While Not Config.atEndOfStream
@@ -84,13 +84,7 @@ While Not SwitchIP.atEndOfStream
 				Category = ConfigLine(0)				
 				Command = ConfigLine(1)
 				Prompt = ConfigLine(2)
-				if StrComp(Category,"config") = 0 then
-					objSc.Send Command & VbCr
-					PromptExpected = "(" & Prompt & ")#"
-					objSc.WaitForString PromptExpected '<----------------------Prompt Check
-				elseif StrComp(Category,"test") = 0 then
-					'Not written yet
-				end if
+				Call ProcessLine (Category, Command, Prompt)
 			Wend
 
 			objSc.Send "end" & VbCr
@@ -143,3 +137,13 @@ tempfile.writeline "--------------"
 tempfile.writeline "Missing PHOTO-ACL: " & missAclPhoto
 tempfile.writeline "--------------"
 TempFile.Close()
+
+Sub ProcessLine (Category, Command, Prompt)
+	if StrComp(Category,"config") = 0 then
+		objSc.Send Command & VbCr
+		PromptExpected = "(" & Prompt & ")#"
+		objSc.WaitForString PromptExpected '<----------------------Prompt Check
+	elseif StrComp(Category,"test") = 0 then
+		'Not written yet
+	end if
+End Sub
