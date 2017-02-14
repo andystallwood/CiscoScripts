@@ -81,11 +81,16 @@ While Not SwitchIP.atEndOfStream
 			While Not Config.atEndOfStream
 				'Split Line Read into Command and Prompt
 				ConfigLine = Split(Config.ReadLine,",")
-				Command = ConfigLine(0)
-				Prompt = ConfigLine(1)
-				objSc.Send Command & VbCr
-				PromptExpected = "(" & Prompt & ")#"
-				objSc.WaitForString PromptExpected '<----------------------Command Check
+				Category = ConfigLine(0)				
+				Command = ConfigLine(1)
+				Prompt = ConfigLine(2)
+				if StrComp(Category,"config") = 0 then
+					objSc.Send Command & VbCr
+					PromptExpected = "(" & Prompt & ")#"
+					objSc.WaitForString PromptExpected '<----------------------Prompt Check
+				elseif StrComp(Category,"test") = 0 then
+					'Not written yet
+				end if
 			Wend
 
 			objSc.Send "end" & VbCr
