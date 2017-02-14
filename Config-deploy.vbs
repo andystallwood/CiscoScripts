@@ -18,9 +18,7 @@ Set SwitchIP = FSO.opentextfile(HOSTIP, ForReading, False)
 
 'File containing a list of commands to perform on each router. One command per line.
 CommandsFile = objD.Prompt("Enter folder name and Path to the commands file","Folder Name & Path","U:\script\PHOTO-ACL\Commands.txt")
-Set ConfigCSV = CreateObject(CommandsFile)
-'Set Config = FSO.opentextfile(CommandsFile, ForReading, False)
-ConfigCSV.HasColumnNames = 1
+Set Config = FSO.opentextfile(CommandsFile, ForReading, False)
 
 User = objD.Prompt("Enter YOUR Username To Get into device"&Chr(13)&Chr(13)&_
 "Same username used for all devices"," ","xxxxxxxxxx")
@@ -84,19 +82,11 @@ While Not SwitchIP.atEndOfStream
 			'<-- "!" Notes for the config output - Ignored by device
 			objSc.Send "conf t" & VbCr 
 			objSc.WaitForString "(config" : objSc.WaitForString ")#" '<----------------------Command Check
-			
-			NumCommands = csv.NumRows
-			For ConfigLine = 0 To NumCommands - 1
-				objSc.Send ConfigCSV.GetCell(ConfigLine,2) & VbCr
+			While Not Config.atEndOfStream
+				ConfigLine = Config.Readline()
+				objSc.Send ConfigLine & VbCr 
 				objSc.WaitForString "(config" : objSc.WaitForString ")#" '<----------------------Command Check
-			Next
-			
-			'While Not Config.atEndOfStream
-				'ConfigLine = Config.Readline()
-				'objSc.Send ConfigLine & VbCr 
-				'objSc.WaitForString "(config" : objSc.WaitForString ")#" '<----------------------Command Check
-			'Wend
-
+			Wend
 			objSc.Send "end" & VbCr
 			objSc.WaitForString"#"
 			save = save + 1
