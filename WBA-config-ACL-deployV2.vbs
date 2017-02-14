@@ -1,10 +1,6 @@
 # $language = "VBScript"
 # $interface = "1.0"
-Dim FSO, Shell, Windir, Runservice, oFile, oFile1, test, deployed
-dim tFACL, cFPRoute, cFSRoute, tFAuth, cFPAuth, cFSAuth, tFail, tFRolled, tRolled, tUnknownT
-'Dim g_clipboard, g_map
-'Dim re, Matches, Match
-'Dim nResult, nRow
+Dim FSO, Shell, deployed
 Const ForReading = 1
 Const ForWriting = 2
 Const ForAppending = 8
@@ -14,19 +10,23 @@ Set objSc = crt.Screen
 Set objD = crt.Dialog
 Set objSe = crt.Session
 Set objW = crt.Window
-HOSTIP = objD.Prompt("Enter folder name and Path to the hosts file","Folder Name & Path","h:\script\PHOTO-ACL\Batch#\ACL-IP.txt")
-Set SwitchIP = FSO.opentextfile(HOSTIP, ForReading, False)
 Set objDictionary = CreateObject("Scripting.Dictionary")
 
+HOSTIP = objD.Prompt("Enter folder name and Path to the hosts file","Folder Name & Path","U:\script\PHOTO-ACL\ACL-IP.txt")
+Set SwitchIP = FSO.opentextfile(HOSTIP, ForReading, False)
+
+CommandsFile = objD.Prompt("Enter folder name and Path to the commands file","Folder Name & Path","U:\script\PHOTO-ACL\Commands.txt")
+Set Config = FSO.opentextfile(CommandsFile, ForReading, False)
 
 User = objD.Prompt("Enter YOUR Username To Get into device"&Chr(13)&Chr(13)&_
-"Same username used for all devices"," ","xxxxxxxxx")
+"Same username used for all devices"," ","609589029")
+
 Pass = objD.Prompt("Enter password To Get into device"&Chr(13)&Chr(13)&_
-"Password must be the same for all device!"," ","xxx", TRUE)
-Logfiles = objD.Prompt("Enter folder name and Path to save Log files In.","Folder Name & Path","H:\script\logs\Photo-ACL\Batch#")
+"Password must be the same for all devices!"," ","xxx", TRUE)
+
+Logfiles = objD.Prompt("Enter folder name and Path to save Log files In.","Folder Name & Path","U:\script\PHOTO-ACL\logs\")
 
 missAclPhoto = 0
-
 
 If FSO.FolderExists(Logfiles) Then
 Else
@@ -38,21 +38,17 @@ tempfile.writeline "Deployment start - " & Now ()
 tempfile.writeline "--------------"
 TempFile.Close()
 
-
-
 '<-------- Script Purpose: Deploy
-'<-- 1. Update the 
+'<-- 1. Update the Photo access control list (ACL) on all retail store routers (primary and secondary)
 '<--------
 
 'Start loop
 While Not SwitchIP.atEndOfStream
 	IP = SwitchIP.Readline()
 	save = 0
-	'authFail = 0
 	counter = counter + 1
 	
 	'<-------------------- Device Connect sequence ---------------------------------> 
-	On Error Resume Next
 	On Error Resume Next
 	crt.session.connect "/SSH2 /AcceptHostKeys /L " & User & " /PASSWORD " & Pass & " " & IP & " "
 	On Error Goto 0
@@ -74,32 +70,30 @@ While Not SwitchIP.atEndOfStream
 		
 		'<---- PHOTO-ACL Section
 		objSc.Send"sh ip access-list PHOTO-ACL" & VbCr 
-		aclPhoto = objSc.WaitForString("Extended",5)
-		if aclPhoto = TRUE then
+		aclExists = objSc.WaitForString("Extended",5)
+		if aclExists = TRUE then
 			'
 			'<-------------------- Native command list ----------------------------------->
 			'conf t
-			'no ip access-list extended PHOTO-ACL
-			'ip access-list extended PHOTO-ACL
-			'remark Hello World
+			'ip access-list extended TESTAFS
 			'<-------------------- Scripted command list --------------------------------->
 			'<-- "!" Notes for the config output - Ignored by device
 			objSc.Send "conf t" & VbCr 
-			objSc.WaitForString "(config)#" '<----------------------Command Check
-			objSc.Send "no ip access-list extended PHOTO-ACL" & VbCr 
-			objSc.WaitForString "(config)#" '<----------------------Command Check
-			objSc.Send "ip access-list extended PHOTO-ACL" & VbCr 
-			objSc.WaitForString "(config-ext-nacl)#" '<----------------------Command Check
-			objSc.Send "remark Hello World" & VbCr 
-			objSc.WaitForString "(config-ext-nacl)#" '<----------------------Command Check
+			objSc.WaitForString "(config" : objSc.WaitForString ")#" '<----------------------Command Check
+			While Not Config.atEndOfStream
+				ConfigLine = Config.Readline()
+				objSc.Send ConfigLine & VbCr 
+				objSc.WaitForString "(config" : objSc.WaitForString ")#" '<----------------------Command Check
+			Wend
 			objSc.Send "end" & VbCr
 			objSc.WaitForString"#"
 			save = save + 1
+			Set Config = FSO.opentextfile(CommandsFile, ForReading, False)
 		else
-			Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\missing-ACL-Photo.txt",ForAppending, True)
+			Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\missing-ACL.txt",ForAppending, True)
 			TempFiledata.writeline IP
 			TempFiledata.Close()
-			missAclPhoto = missAclPhoto + 1
+			missAcl = missAcl + 1
 		end if
 		
 		if save > 0 then
@@ -126,7 +120,7 @@ While Not SwitchIP.atEndOfStream
 
 Wend
 
-tFail = missAclPhoto
+tFail = missAcl
 tRolled = ""
 tFRolled= ""
 
@@ -142,6 +136,3 @@ tempfile.writeline "--------------"
 tempfile.writeline "Missing PHOTO-ACL: " & missAclPhoto
 tempfile.writeline "--------------"
 TempFile.Close()
-
-
-
