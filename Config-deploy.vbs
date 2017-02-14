@@ -98,14 +98,7 @@ While Not SwitchIP.atEndOfStream
 		end if
 		
 		if save > 0 then
-			objSc.Send "copy run start" & VbCr
-			objSc.WaitForString"]?"
-			objSc.Send VbCr
-			objSc.WaitForString"#"
-			deployed = deployed + 1
-			Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\ACL-Updated-list.txt",ForAppending, True)
-			TempFiledata.writeline IP
-			TempFiledata.Close()
+			deployed = deployed + SaveConfig(Logfiles)
 		end if
 		
 		objSc.Send "exit" & vbCr
@@ -147,3 +140,14 @@ Sub ProcessLine (Category, Command, Prompt)
 		'Not written yet
 	end if
 End Sub
+
+Function SaveConfig(Logfiles)
+	objSc.Send "copy run start" & VbCr
+	objSc.WaitForString"[startup-config]?"
+	objSc.Send VbCr
+	objSc.WaitForString"#"
+	SaveConfig = 1
+	Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\ACL-Updated-list.txt",ForAppending, True)
+	TempFiledata.writeline IP
+	TempFiledata.Close()
+End Function
