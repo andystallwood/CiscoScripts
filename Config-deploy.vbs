@@ -17,7 +17,7 @@ HOSTIP = objD.Prompt("Enter folder name and Path to the hosts file","Folder Name
 Set SwitchIP = FSO.opentextfile(HOSTIP, ForReading, False)
 
 'File containing a list of commands to perform on each router. One command per line.
-CommandsFile = objD.Prompt("Enter folder name and Path to the commands file","Folder Name & Path","U:\script\PHOTO-ACL\Commands.txt")
+CommandsFile = objD.Prompt("Enter folder name and Path to the commands file","Folder Name & Path","U:\script\PHOTO-ACL\Commands.csv")
 
 User = objD.Prompt("Enter YOUR Username To Get into device"&Chr(13)&Chr(13)&_
 "Same username used for all devices"," ","xxxxxxxxxx")
@@ -77,12 +77,15 @@ While Not SwitchIP.atEndOfStream
 			objSc.Send "conf t" & VbCr 
 			objSc.WaitForString "(config" : objSc.WaitForString ")#" '<----------------------Command Check
 			'<---- Read each config line in turn from the CSV file and send to the device
+			ConfigLine = Config.ReadLine 'Read Header Row of CSV file
 			While Not Config.atEndOfStream
+				'Split Line Read into Command and Prompt
 				ConfigLine = Split(Config.ReadLine,",")
 				Command = ConfigLine(0)
-				'Prompt = ConfigLine(1)
-				objSc.Send Command & VbCr 
-				objSc.WaitForString "(config" : objSc.WaitForString ")#" '<----------------------Command Check
+				Prompt = ConfigLine(1)
+				objSc.Send Command & VbCr
+				PromptExpected = "(" & Prompt & ")#"
+				objSc.WaitForString PromptExpected '<----------------------Command Check
 			Wend
 
 			objSc.Send "end" & VbCr
