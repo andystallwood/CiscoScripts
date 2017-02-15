@@ -139,17 +139,17 @@ Function ProcessLine (Category, Command, Prompt, Output, Logfiles, WarnOrFail)
 		TestSuccess = objSc.WaitForString(Output,5)
 		if TestSuccess = FALSE And (StrComp(WarnOrFail,"warn") = 0) then 'Output not found, and a warning
 			Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True)
-			TempFiledata.writeline IP & " Warning. Deployment Started at " & DeployStart
+			TempFiledata.writeline IP & " Warning at " & Now() & " . Deployment Batch Started at " & DeployStart
 			TempFiledata.Close()
 			ProcessLine = 1 '<----Warning
 		elseif TestSuccess = FALSE And (StrComp(WarnOrFail,"fail") = 0) then 'Output not found, and a failure
 			Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True)
-			TempFiledata.writeline IP & " Failure. Exiting Device. Deployment Started at " & DeployStart
+			TempFiledata.writeline IP & " Failure. Exiting Device at " & Now() & " . Deployment Batch Started at " & DeployStart
 			TempFiledata.Close()
 			ProcessLine = 2 '<----Failure
 		elseif TestSuccess = FALSE then
 			Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True)
-			TempFiledata.writeline IP & " Command Check Failed. Exiting Device. Possible Error in Input File. Deployment Started at " & DeployStart
+			TempFiledata.writeline IP & " Command Check Failed. Exiting Device. Possible Error in Input File at " & Now() & " . Deployment Batch Started at " & DeployStart
 			TempFiledata.Close()
 			ProcessLine = 3 '<----Something has gone wrong with the input file
 		else
