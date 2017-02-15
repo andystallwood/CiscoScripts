@@ -33,12 +33,8 @@ If FSO.FolderExists(Logfiles) Then
 Else
 	FSO.CreateFolder(Logfiles)
 End IF
-'<---- Adds a deployment start Time stamp to the summary log file.
-Set Tempfile = FSO.OpenTextFile(Logfiles&"\Summary.txt",ForAppending, True)
-DeployStart = Now ()
-tempfile.writeline "Deployment start - " & DeployStart
-tempfile.writeline "--------------"
-TempFile.Close()
+
+DeployStart = Now () '<---- Used for a deployment start Time stamp.
 
 '<-------- Script Purpose: Deploy
 '<-- Deploy Config on a set of Cisco devices
@@ -138,19 +134,19 @@ Function ProcessLine (Category, Command, Prompt, Output, Logfiles, WarnOrFail)
 		objSc.Send Command & VbCr
 		TestSuccess = objSc.WaitForString(Output,5)
 		if TestSuccess = FALSE And (StrComp(WarnOrFail,"warn") = 0) then 'Output not found, and a warning
-			Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True)
-			TempFiledata.writeline IP & " Warning at " & Now() & " . Deployment Batch Started at " & DeployStart
-			TempFiledata.Close()
+			Set ErrorFile = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True)
+			ErrorFile.writeline IP & " Warning at " & Now() & " . Deployment Batch Started at " & DeployStart
+			ErrorFile.Close()
 			ProcessLine = 1 '<----Warning
 		elseif TestSuccess = FALSE And (StrComp(WarnOrFail,"fail") = 0) then 'Output not found, and a failure
-			Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True)
-			TempFiledata.writeline IP & " Failure. Exiting Device at " & Now() & " . Deployment Batch Started at " & DeployStart
-			TempFiledata.Close()
+			Set ErrorFile = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True)
+			ErrorFile.writeline IP & " Failure. Exiting Device at " & Now() & " . Deployment Batch Started at " & DeployStart
+			ErrorFile.Close()
 			ProcessLine = 2 '<----Failure
 		elseif TestSuccess = FALSE then
-			Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True)
-			TempFiledata.writeline IP & " Command Check Failed. Exiting Device. Possible Error in Input File at " & Now() & " . Deployment Batch Started at " & DeployStart
-			TempFiledata.Close()
+			Set ErrorFile = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True)
+			ErrorFile.writeline IP & " Command Check Failed. Exiting Device. Possible Error in Input File at " & Now() & " . Deployment Batch Started at " & DeployStart
+			ErrorFile.Close()
 			ProcessLine = 3 '<----Something has gone wrong with the input file
 		else
 			ProcessLine = 0 '<----Success
