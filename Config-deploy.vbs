@@ -112,7 +112,7 @@ While Not SwitchIP.atEndOfStream
 
 Wend
 
-		SwitchIP.Close() 'Close Switch IP file File
+SwitchIP.Close() 'Close Switch IP file File
 
 Set Summaryfile = FSO.OpenTextFile(Logfiles&"\Summary.txt",ForAppending, True)
 Summaryfile.writeline "Deployment Started: " & DeployStart
@@ -133,24 +133,20 @@ Function ProcessLine (Category, Command, Prompt, Output, Logfiles, WarnOrFail)
 	elseif StrComp(Category,"test") = 0 then
 		objSc.Send Command & VbCr
 		TestSuccess = objSc.WaitForString(Output,5)
+		Set ErrorFile = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True) 'Open error File ready to be written to
 		if TestSuccess = FALSE And (StrComp(WarnOrFail,"warn") = 0) then 'Output not found, and a warning
-			Set ErrorFile = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True)
 			ErrorFile.writeline IP & " Warning at " & Now() & " . Deployment Batch Started at " & DeployStart
-			ErrorFile.Close()
 			ProcessLine = 1 '<----Warning
 		elseif TestSuccess = FALSE And (StrComp(WarnOrFail,"fail") = 0) then 'Output not found, and a failure
-			Set ErrorFile = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True)
 			ErrorFile.writeline IP & " Failure. Exiting Device at " & Now() & " . Deployment Batch Started at " & DeployStart
-			ErrorFile.Close()
 			ProcessLine = 2 '<----Failure
 		elseif TestSuccess = FALSE then
-			Set ErrorFile = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True)
 			ErrorFile.writeline IP & " Command Check Failed. Exiting Device. Possible Error in Input File at " & Now() & " . Deployment Batch Started at " & DeployStart
-			ErrorFile.Close()
 			ProcessLine = 3 '<----Something has gone wrong with the input file
 		else
 			ProcessLine = 0 '<----Success
 		end if
+		ErrorFile.Close()
 	end if
 End Function
 
@@ -160,7 +156,7 @@ Function SaveConfig(Logfiles)
 	objSc.Send VbCr
 	objSc.WaitForString"#"
 	SaveConfig = 1
-	Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\Completed.txt",ForAppending, True)
-	TempFiledata.writeline IP & " Deployment Started at " & DeployStart
-	TempFiledata.Close()
+	Set CompletedFile = FSO.OpenTextFile(Logfiles&"\Completed.txt",ForAppending, True)
+	CompletedFile.writeline IP & Now() & " . Deployment Batch Started at " & DeployStart
+	CompletedFile.Close()
 End Function
