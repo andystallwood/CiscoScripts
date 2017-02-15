@@ -27,7 +27,7 @@ Pass = objD.Prompt("Enter password To Get into device"&Chr(13)&Chr(13)&_
 
 Logfiles = objD.Prompt("Enter folder name and Path to save Log files In.","Folder Name & Path","U:\script\PHOTO-ACL\logs\")
 
-missAclPhoto = 0
+ErrorCount = 0
 
 If FSO.FolderExists(Logfiles) Then
 Else
@@ -35,12 +35,13 @@ Else
 End IF
 '<---- Adds a deployment start Time stamp to the summary log file.
 Set Tempfile = FSO.OpenTextFile(Logfiles&"\Summary.txt",ForAppending, True)
-tempfile.writeline "Deployment start - " & Now ()
+DeployStart = Now ()
+tempfile.writeline "Deployment start - " & DeployStart
 tempfile.writeline "--------------"
 TempFile.Close()
 
 '<-------- Script Purpose: Deploy
-'<-- 1. Update the Photo access control list (ACL) on all retail store routers (primary and secondary)
+'<-- Deploy Config on a set of Cisco devices
 '<--------
 
 'Start loop
@@ -64,54 +65,42 @@ While Not SwitchIP.atEndOfStream
 		objSc.WaitForString":"
 		objSc.Send Pass & vbCr
 		objSc.WaitForString"#"
-		objSc.Send "term length 0" & vbCr '<-- allows
+		objSc.Send "term length 0" & vbCr '<-- disables paging of screen output
 		objSc.WaitForString"#"
-		
 		'<-------------------- END if Connect sequence ------------------------------->
-		'<-------------------- Pre-test section -------------------------------------->
 		
-		'<---- PHOTO-ACL Section
-		objSc.Send"sh ip access-list PHOTO-ACL" & VbCr 
-		aclExists = objSc.WaitForString("Extended",5)
-		if aclExists = TRUE then
-			objSc.Send "conf t" & VbCr 
-			objSc.WaitForString "(config" : objSc.WaitForString ")#" '<----------------------Command Check
 			'<---- Read each config line in turn from the CSV file and send to the device
 			ConfigLine = Config.ReadLine 'Read Header Row of CSV file
-			While Not Config.atEndOfStream
-				'Split Line Read into Command and Prompt
-				ConfigLine = Split(Config.ReadLine,",")
-				Category = ConfigLine(0)				
-				Command = ConfigLine(1)
-				Prompt = ConfigLine(2)
-				if StrComp(Category,"config") = 0 then
-					objSc.Send Command & VbCr
-					PromptExpected = "(" & Prompt & ")#"
-					objSc.WaitForString PromptExpected '<----------------------Prompt Check
-				elseif StrComp(Category,"test") = 0 then
-					'Not written yet
-				end if
-			Wend
+			
+		Do While Not Config.atEndOfStream
+			'Split Line Read into Category, Command, Prompt and Output and process the line
+			ConfigLine = Split(Config.ReadLine,",")
+			Category = ConfigLine(0)				
+			Command = ConfigLine(1)
+			Prompt = ConfigLine(2)
+			Output = ConfigLine(3)
+			WarnOrFail = ConfigLine(4)
 
-			objSc.Send "end" & VbCr
-			objSc.WaitForString"#"
-			save = save + 1
-		else
-			Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\missing-ACL.txt",ForAppending, True)
-			TempFiledata.writeline IP
-			TempFiledata.Close()
-			missAcl = missAcl + 1
-		end if
-		
+			ProcessCommand = ProcessLine(Category, Command, Prompt, Output, Logfiles, WarnOrFail)
+			If ProcessCommand  = 1 Then '<----Warning
+				ErrorCount = ErrorCount + 1
+			ElseIf ProcessCommand  = 2 Then '<----Failure
+				ErrorCount = ErrorCount + 1
+				Exit Do
+			ElseIf ProcessCommand  = 3 Then '<----Input File Failure
+				ErrorCount = ErrorCount + 1
+				Exit Do
+			Else '<----Success
+			End If
+
+		Loop
+
+		objSc.Send "end" & VbCr
+		objSc.WaitForString"#"
+		save = save + 1
+					
 		if save > 0 then
-			objSc.Send "copy run start" & VbCr
-			objSc.WaitForString"]?"
-			objSc.Send VbCr
-			objSc.WaitForString"#"
-			deployed = deployed + 1
-			Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\ACL-Updated-list.txt",ForAppending, True)
-			TempFiledata.writeline IP
-			TempFiledata.Close()
+			deployed = deployed + SaveConfig(Logfiles)
 		end if
 		
 		objSc.Send "exit" & vbCr
@@ -127,19 +116,56 @@ While Not SwitchIP.atEndOfStream
 
 Wend
 
-tFail = missAcl
-tRolled = ""
-tFRolled= ""
 
 Set Tempfile = FSO.OpenTextFile(Logfiles&"\Summary.txt",ForAppending, True)
+TempFile.writeline "Deployment Started: " & DeployStart
 TempFile.writeline "Deployment Complete: " & Now ()
 tempfile.writeline "--------------"
 TempFile.writeline "Total Number of devices: " & counter
 TempFile.writeline "Total Number of Updated: " & deployed
-TempFile.writeline "Total Number of warnings: " & tFail
-TempFile.writeline "Total Number of Rolled Back: N/A" & tRolled
-TempFile.writeline "Rolled Back failed: N/A" & tFRolled
-tempfile.writeline "--------------"
-tempfile.writeline "Missing PHOTO-ACL: " & missAclPhoto
+TempFile.writeline "Total Number of warnings: " & ErrorCount
 tempfile.writeline "--------------"
 TempFile.Close()
+
+Function ProcessLine (Category, Command, Prompt, Output, Logfiles, WarnOrFail)
+	if StrComp(Category,"config") = 0 then
+		objSc.Send Command & VbCr
+		PromptExpected = "(" & Prompt & ")#"
+		objSc.WaitForString PromptExpected '<----------------------Prompt Check
+		ProcessLine = 0 '<----Success
+	elseif StrComp(Category,"test") = 0 then
+		Command = "do " & Command
+		objSc.Send Command & VbCr
+		TestSuccess = objSc.WaitForString(Output,5)
+		if TestSuccess = FALSE And (StrComp(WarnOrFail,"warn") = 0) then 'Output not found, and a warning
+			Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True)
+			TempFiledata.writeline IP & " Warning. Deployment Started at " & DeployStart
+			TempFiledata.Close()
+			ProcessLine = 1 '<----Warning
+		elseif TestSuccess = FALSE And (StrComp(WarnOrFail,"fail") = 0) then 'Output not found, and a failure
+			Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True)
+			TempFiledata.writeline IP & " Failure. Exiting Device. Deployment Started at " & DeployStart
+			TempFiledata.Close()
+			ProcessLine = 2 '<----Failure
+		elseif TestSuccess = FALSE then
+			Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True)
+			TempFiledata.writeline IP & " Command Check Failed. Exiting Device. Possible Error in Input File. Deployment Started at " & DeployStart
+			TempFiledata.Close()
+			ProcessLine = 3 '<----Something has gone wrong with the input file
+		else
+			ProcessLine = 0 '<----Success
+		end if
+	end if
+End Function
+
+Function SaveConfig(Logfiles)
+	objSc.Send "copy run start" & VbCr
+	objSc.WaitForString"[startup-config]?"
+	objSc.Send VbCr
+	objSc.WaitForString"#"
+	SaveConfig = 1
+	Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\Completed.txt",ForAppending, True)
+	TempFiledata.writeline IP & " Deployment Started at " & DeployStart
+	TempFiledata.Close()
+End Function
+																		
