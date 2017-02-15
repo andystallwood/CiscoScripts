@@ -35,7 +35,8 @@ Else
 End IF
 '<---- Adds a deployment start Time stamp to the summary log file.
 Set Tempfile = FSO.OpenTextFile(Logfiles&"\Summary.txt",ForAppending, True)
-tempfile.writeline "Deployment start - " & Now ()
+DeployStart = Now ()
+tempfile.writeline "Deployment start - " & DeployStart
 tempfile.writeline "--------------"
 TempFile.Close()
 
@@ -104,6 +105,7 @@ Wend
 
 
 Set Tempfile = FSO.OpenTextFile(Logfiles&"\Summary.txt",ForAppending, True)
+TempFile.writeline "Deployment Started: " & DeployStart
 TempFile.writeline "Deployment Complete: " & Now ()
 tempfile.writeline "--------------"
 TempFile.writeline "Total Number of devices: " & counter
@@ -112,7 +114,7 @@ TempFile.writeline "Total Number of warnings: " & ErrorCount
 tempfile.writeline "--------------"
 TempFile.Close()
 
-Sub ProcessLine (Category, Command, Prompt, Output, Logfiles, ErrorCount)
+Function ProcessLine (Category, Command, Prompt, Output, Logfiles, ErrorCount)
 	if StrComp(Category,"config") = 0 then
 		objSc.Send Command & VbCr
 		PromptExpected = "(" & Prompt & ")#"
@@ -123,12 +125,12 @@ Sub ProcessLine (Category, Command, Prompt, Output, Logfiles, ErrorCount)
 		TestSuccess = objSc.WaitForString(Output,5)
 		if TestSuccess = FALSE then
 			Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True)
-			TempFiledata.writeline IP
+			TempFiledata.writeline IP & " Deployment Started at " & DeployStart
 			TempFiledata.Close()
 			ErrorCount = ErrorCount + 1
 		end if
 	end if
-End Sub
+End Function
 
 Function SaveConfig(Logfiles)
 	objSc.Send "copy run start" & VbCr
@@ -136,7 +138,7 @@ Function SaveConfig(Logfiles)
 	objSc.Send VbCr
 	objSc.WaitForString"#"
 	SaveConfig = 1
-	Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\ACL-Updated-list.txt",ForAppending, True)
-	TempFiledata.writeline IP
+	Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\Completed.txt",ForAppending, True)
+	TempFiledata.writeline IP & " Deployment Started at " & DeployStart
 	TempFiledata.Close()
 End Function
