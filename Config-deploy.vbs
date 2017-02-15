@@ -12,7 +12,7 @@ Set objSe = crt.Session
 Set objW = crt.Window
 Set objDictionary = CreateObject("Scripting.Dictionary")
 
-'File containing a list of Router IPs to perform the change on. One IP per line.
+'File containing a list of Cisco Device IPs to perform the change on. One IP per line.
 HOSTIP = objD.Prompt("Enter folder name and Path to the hosts file","Folder Name & Path","U:\script\PHOTO-ACL\ACL-IP.txt")
 Set SwitchIP = FSO.opentextfile(HOSTIP, ForReading, False)
 
@@ -92,9 +92,9 @@ While Not SwitchIP.atEndOfStream
 				Exit Do
 			Else '<----Success
 			End If
-
 		Loop
-
+		Config.Close() 'Close Config File
+		
 		objSc.Send "end" & VbCr
 		objSc.WaitForString"#"
 		save = save + 1
@@ -109,23 +109,24 @@ While Not SwitchIP.atEndOfStream
 		objSE.Disconnect
 		
 	Else
-		Set Tempfile = FSO.OpenTextFile(Logfiles&"\NoConnect.txt",ForAppending, True)
-		TempFile.writeline IP
-		TempFile.Close()
+		Set NoConnectfile = FSO.OpenTextFile(Logfiles&"\NoConnect.txt",ForAppending, True)
+		NoConnectfile.writeline IP
+		NoConnectfile.Close()
 	End IF
 
 Wend
 
+		SwitchIP.Close() 'Close Switch IP file File
 
-Set Tempfile = FSO.OpenTextFile(Logfiles&"\Summary.txt",ForAppending, True)
-TempFile.writeline "Deployment Started: " & DeployStart
-TempFile.writeline "Deployment Complete: " & Now ()
-tempfile.writeline "--------------"
-TempFile.writeline "Total Number of devices: " & counter
-TempFile.writeline "Total Number of Updated: " & deployed
-TempFile.writeline "Total Number of warnings: " & ErrorCount
-tempfile.writeline "--------------"
-TempFile.Close()
+Set Summaryfile = FSO.OpenTextFile(Logfiles&"\Summary.txt",ForAppending, True)
+Summaryfile.writeline "Deployment Started: " & DeployStart
+Summaryfile.writeline "Deployment Complete: " & Now ()
+Summaryfile.writeline "--------------"
+Summaryfile.writeline "Total Number of devices: " & counter
+Summaryfile.writeline "Total Number of Updated: " & deployed
+Summaryfile.writeline "Total Number of warnings: " & ErrorCount
+Summaryfile.writeline "--------------"
+Summaryfile.Close()
 
 Function ProcessLine (Category, Command, Prompt, Output, Logfiles, WarnOrFail)
 	if StrComp(Category,"config") = 0 then
@@ -134,7 +135,6 @@ Function ProcessLine (Category, Command, Prompt, Output, Logfiles, WarnOrFail)
 		objSc.WaitForString PromptExpected '<----------------------Prompt Check
 		ProcessLine = 0 '<----Success
 	elseif StrComp(Category,"test") = 0 then
-		Command = "do " & Command
 		objSc.Send Command & VbCr
 		TestSuccess = objSc.WaitForString(Output,5)
 		if TestSuccess = FALSE And (StrComp(WarnOrFail,"warn") = 0) then 'Output not found, and a warning
@@ -168,4 +168,3 @@ Function SaveConfig(Logfiles)
 	TempFiledata.writeline IP & " Deployment Started at " & DeployStart
 	TempFiledata.Close()
 End Function
-																		
