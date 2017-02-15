@@ -27,7 +27,7 @@ Pass = objD.Prompt("Enter password To Get into device"&Chr(13)&Chr(13)&_
 
 Logfiles = objD.Prompt("Enter folder name and Path to save Log files In.","Folder Name & Path","U:\script\PHOTO-ACL\logs\")
 
-missAclPhoto = 0
+ErrorCount = 0
 
 If FSO.FolderExists(Logfiles) Then
 Else
@@ -64,39 +64,27 @@ While Not SwitchIP.atEndOfStream
 		objSc.WaitForString":"
 		objSc.Send Pass & vbCr
 		objSc.WaitForString"#"
-		objSc.Send "term length 0" & vbCr '<-- allows
+		objSc.Send "term length 0" & vbCr '<-- disables paging of screen output
 		objSc.WaitForString"#"
-		
 		'<-------------------- END if Connect sequence ------------------------------->
-		'<-------------------- Pre-test section -------------------------------------->
 		
-		'<---- PHOTO-ACL Section
-		objSc.Send"sh ip access-list PHOTO-ACL" & VbCr 
-		aclExists = objSc.WaitForString("Extended",5)
-		if aclExists = TRUE then
-			objSc.Send "conf t" & VbCr 
-			objSc.WaitForString "(config)#" '<----------------------Prompt Check
 			'<---- Read each config line in turn from the CSV file and send to the device
 			ConfigLine = Config.ReadLine 'Read Header Row of CSV file
-			While Not Config.atEndOfStream
-				'Split Line Read into Command and Prompt
-				ConfigLine = Split(Config.ReadLine,",")
-				Category = ConfigLine(0)				
-				Command = ConfigLine(1)
-				Prompt = ConfigLine(2)
-				Call ProcessLine (Category, Command, Prompt)
-			Wend
+			
+		While Not Config.atEndOfStream
+			'Split Line Read into Category, Command, Prompt and Output and process the line
+			ConfigLine = Split(Config.ReadLine,",")
+			Category = ConfigLine(0)				
+			Command = ConfigLine(1)
+			Prompt = ConfigLine(2)
+			Output = ConfigLine(3)				
+			Call ProcessLine (Category, Command, Prompt, Output, Logfiles, ErrorCount)
+		Wend
 
-			objSc.Send "end" & VbCr
-			objSc.WaitForString"#"
-			save = save + 1
-		else
-			Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\missing-ACL.txt",ForAppending, True)
-			TempFiledata.writeline IP
-			TempFiledata.Close()
-			missAcl = missAcl + 1
-		end if
-		
+		objSc.Send "end" & VbCr
+		objSc.WaitForString"#"
+		save = save + 1
+					
 		if save > 0 then
 			deployed = deployed + SaveConfig(Logfiles)
 		end if
@@ -114,30 +102,31 @@ While Not SwitchIP.atEndOfStream
 
 Wend
 
-tFail = missAcl
-tRolled = ""
-tFRolled= ""
 
 Set Tempfile = FSO.OpenTextFile(Logfiles&"\Summary.txt",ForAppending, True)
 TempFile.writeline "Deployment Complete: " & Now ()
 tempfile.writeline "--------------"
 TempFile.writeline "Total Number of devices: " & counter
 TempFile.writeline "Total Number of Updated: " & deployed
-TempFile.writeline "Total Number of warnings: " & tFail
-TempFile.writeline "Total Number of Rolled Back: N/A" & tRolled
-TempFile.writeline "Rolled Back failed: N/A" & tFRolled
-tempfile.writeline "--------------"
-tempfile.writeline "Missing PHOTO-ACL: " & missAclPhoto
+TempFile.writeline "Total Number of warnings: " & ErrorCount
 tempfile.writeline "--------------"
 TempFile.Close()
 
-Sub ProcessLine (Category, Command, Prompt)
+Sub ProcessLine (Category, Command, Prompt, Output, Logfiles, ErrorCount)
 	if StrComp(Category,"config") = 0 then
 		objSc.Send Command & VbCr
 		PromptExpected = "(" & Prompt & ")#"
 		objSc.WaitForString PromptExpected '<----------------------Prompt Check
 	elseif StrComp(Category,"test") = 0 then
-		'Not written yet
+		Command = "do " & Command
+		objSc.Send Command & VbCr
+		TestSuccess = objSc.WaitForString(Output,5)
+		if TestSuccess = FALSE then
+			Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True)
+			TempFiledata.writeline IP
+			TempFiledata.Close()
+			ErrorCount = ErrorCount + 1
+		end if
 	end if
 End Sub
 
