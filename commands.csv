@@ -1,5 +1,7 @@
-COMMAND,PROMPT AFTER COMMAND
-ip access-list extended TESTAFS2,config-ext-nacl
-ip access-list extended TESTAFS3,config-ext-nacl
-no ip access-list extended TESTAFS2,config
-no ip access-list extended TESTAFS3,config
+CATEGORY,COMMAND,PROMPT AFTER COMMAND,EXPECTED RESPONSE,WARNORFAIL
+config,conf t,config,NA,NA
+test,sh ip access-list PHOTO-ACL,NA,Extended,fail
+config,ip access-list extended TESTAFS2,config-ext-nacl,NA,NA
+config,ip access-list extended TESTAFS3,config-ext-nacl,NA,NA
+config,no ip access-list extended TESTAFS2,config,NA,NA
+config,no ip access-list extended TESTAFS3,config,NA,NA
