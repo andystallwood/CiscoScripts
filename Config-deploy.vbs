@@ -41,7 +41,7 @@ tempfile.writeline "--------------"
 TempFile.Close()
 
 '<-------- Script Purpose: Deploy
-'<-- 1. Update the Photo access control list (ACL) on all retail store routers (primary and secondary)
+'<-- Deploy Config on a set of Cisco devices
 '<--------
 
 'Start loop
@@ -72,15 +72,28 @@ While Not SwitchIP.atEndOfStream
 			'<---- Read each config line in turn from the CSV file and send to the device
 			ConfigLine = Config.ReadLine 'Read Header Row of CSV file
 			
-		While Not Config.atEndOfStream
+		Do While Not Config.atEndOfStream
 			'Split Line Read into Category, Command, Prompt and Output and process the line
 			ConfigLine = Split(Config.ReadLine,",")
 			Category = ConfigLine(0)				
 			Command = ConfigLine(1)
 			Prompt = ConfigLine(2)
-			Output = ConfigLine(3)				
-			Call ProcessLine (Category, Command, Prompt, Output, Logfiles, ErrorCount)
-		Wend
+			Output = ConfigLine(3)
+			WarnOrFail = ConfigLine(4)
+
+			ProcessCommand = ProcessLine(Category, Command, Prompt, Output, Logfiles, WarnOrFail)
+			If ProcessCommand  = 1 Then '<----Warning
+				ErrorCount = ErrorCount + 1
+			ElseIf ProcessCommand  = 2 Then '<----Failure
+				ErrorCount = ErrorCount + 1
+				Exit Do
+			ElseIf ProcessCommand  = 3 Then '<----Input File Failure
+				ErrorCount = ErrorCount + 1
+				Exit Do
+			Else '<----Success
+			End If
+
+		Loop
 
 		objSc.Send "end" & VbCr
 		objSc.WaitForString"#"
@@ -114,20 +127,33 @@ TempFile.writeline "Total Number of warnings: " & ErrorCount
 tempfile.writeline "--------------"
 TempFile.Close()
 
-Function ProcessLine (Category, Command, Prompt, Output, Logfiles, ErrorCount)
+Function ProcessLine (Category, Command, Prompt, Output, Logfiles, WarnOrFail)
 	if StrComp(Category,"config") = 0 then
 		objSc.Send Command & VbCr
 		PromptExpected = "(" & Prompt & ")#"
 		objSc.WaitForString PromptExpected '<----------------------Prompt Check
+		ProcessLine = 0 '<----Success
 	elseif StrComp(Category,"test") = 0 then
 		Command = "do " & Command
 		objSc.Send Command & VbCr
 		TestSuccess = objSc.WaitForString(Output,5)
-		if TestSuccess = FALSE then
+		if TestSuccess = FALSE And (StrComp(WarnOrFail,"warn") = 0) then 'Output not found, and a warning
 			Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True)
-			TempFiledata.writeline IP & " Deployment Started at " & DeployStart
+			TempFiledata.writeline IP & " Warning. Deployment Started at " & DeployStart
 			TempFiledata.Close()
-			ErrorCount = ErrorCount + 1
+			ProcessLine = 1 '<----Warning
+		elseif TestSuccess = FALSE And (StrComp(WarnOrFail,"fail") = 0) then 'Output not found, and a failure
+			Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True)
+			TempFiledata.writeline IP & " Failure. Exiting Device. Deployment Started at " & DeployStart
+			TempFiledata.Close()
+			ProcessLine = 2 '<----Failure
+		elseif TestSuccess = FALSE then
+			Set Tempfiledata = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True)
+			TempFiledata.writeline IP & " Command Check Failed. Exiting Device. Possible Error in Input File. Deployment Started at " & DeployStart
+			TempFiledata.Close()
+			ProcessLine = 3 '<----Something has gone wrong with the input file
+		else
+			ProcessLine = 0 '<----Success
 		end if
 	end if
 End Function
@@ -142,3 +168,4 @@ Function SaveConfig(Logfiles)
 	TempFiledata.writeline IP & " Deployment Started at " & DeployStart
 	TempFiledata.Close()
 End Function
+																		
