@@ -13,11 +13,11 @@ Set objW = crt.Window
 Set objDictionary = CreateObject("Scripting.Dictionary")
 
 'File containing a list of Cisco Device IPs to perform the change on. One IP per line.
-HOSTIP = objD.Prompt("Enter folder name and Path to the hosts file","Folder Name & Path","U:\script\PHOTO-ACL\ACL-IP.txt")
-Set SwitchIP = FSO.opentextfile(HOSTIP, ForReading, False)
+HOSTIP = objD.Prompt("Enter folder name and Path to the hosts file","Folder Name & Path","U:\script\CreateVLAN\Hosts.csv")
+Set DeviceIP = FSO.opentextfile(HOSTIP, ForReading, False)
 
 'File containing a list of commands to perform on each router. One command per line.
-CommandsFile = objD.Prompt("Enter folder name and Path to the commands file","Folder Name & Path","U:\script\PHOTO-ACL\Commands.csv")
+CommandsFile = objD.Prompt("Enter folder name and Path to the commands file","Folder Name & Path","U:\script\CreateVLAN\Commands.csv")
 
 User = objD.Prompt("Enter YOUR Username To Get into device"&Chr(13)&Chr(13)&_
 "Same username used for all devices"," ","xxxxxxxxxx")
@@ -25,7 +25,7 @@ User = objD.Prompt("Enter YOUR Username To Get into device"&Chr(13)&Chr(13)&_
 Pass = objD.Prompt("Enter password To Get into device"&Chr(13)&Chr(13)&_
 "Password must be the same for all devices!"," ","xxx", TRUE)
 
-Logfiles = objD.Prompt("Enter folder name and Path to save Log files In.","Folder Name & Path","U:\script\PHOTO-ACL\logs\")
+Logfiles = objD.Prompt("Enter folder name and Path to save Log files In.","Folder Name & Path","U:\script\CreateVLAN\logs\")
 
 ErrorCount = 0
 
@@ -41,8 +41,22 @@ DeployStart = Now () '<---- Used for a deployment start Time stamp.
 '<--------
 
 'Start loop
-While Not SwitchIP.atEndOfStream
-	IP = SwitchIP.Readline()
+DeviceLine = DeviceIP.ReadLine 'Read Header Row of CSV file and ignore
+While Not DeviceIP.atEndOfStream
+	DeviceLine = Split(DeviceIP.Readline,",")
+	IP = DeviceLine(0)
+	SiteNumber = DeviceLine(1)
+	Param1 = DeviceLine(2)
+	Param2 = DeviceLine(3)
+	Param3 = DeviceLine(4)
+	Param4 = DeviceLine(5)
+	Param5 = DeviceLine(6)
+	Param6 = DeviceLine(7)
+	Param7 = DeviceLine(8)
+	Param8 = DeviceLine(9)
+	Param9 = DeviceLine(10)
+	Param10 = DeviceLine(11)
+	
 	Set Config = FSO.opentextfile(CommandsFile, ForReading, False)
 	save = 0
 	counter = counter + 1
@@ -66,18 +80,20 @@ While Not SwitchIP.atEndOfStream
 		'<-------------------- END if Connect sequence ------------------------------->
 		
 			'<---- Read each config line in turn from the CSV file and send to the device
-			ConfigLine = Config.ReadLine 'Read Header Row of CSV file
+			ConfigLine = Config.ReadLine 'Read Header Row of CSV file and ignore
 			
 		Do While Not Config.atEndOfStream
 			'Split Line Read into Category, Command, Prompt and Output and process the line
 			ConfigLine = Split(Config.ReadLine,",")
-			Category = ConfigLine(0)				
-			Command = ConfigLine(1)
-			Prompt = ConfigLine(2)
-			Output = ConfigLine(3)
-			WarnOrFail = ConfigLine(4)
+			Category = ConfigLine(0)
+			CommandStart = ConfigLine(1)
+			Param = ConfigLine(2)
+			CommandEnd = ConfigLine(3)
+			Prompt = ConfigLine(4)
+			Output = ConfigLine(5)
+			WarnOrFail = ConfigLine(6)
 
-			ProcessCommand = ProcessLine(Category, Command, Prompt, Output, Logfiles, WarnOrFail)
+			ProcessCommand = ProcessLine(Category, CommandStart, Prompt, Output, Logfiles, WarnOrFail)
 			If ProcessCommand  = 1 Then '<----Warning
 				ErrorCount = ErrorCount + 1
 			ElseIf ProcessCommand  = 2 Then '<----Failure
@@ -112,7 +128,7 @@ While Not SwitchIP.atEndOfStream
 
 Wend
 
-SwitchIP.Close() 'Close Switch IP file File
+DeviceIP.Close() 'Close Switch IP file File
 
 Set Summaryfile = FSO.OpenTextFile(Logfiles&"\Summary.txt",ForAppending, True)
 Summaryfile.writeline "Deployment Started: " & DeployStart
@@ -124,14 +140,14 @@ Summaryfile.writeline "Total Number of warnings: " & ErrorCount
 Summaryfile.writeline "--------------"
 Summaryfile.Close()
 
-Function ProcessLine (Category, Command, Prompt, Output, Logfiles, WarnOrFail)
+Function ProcessLine (Category, CommandStart, Prompt, Output, Logfiles, WarnOrFail)
 	if StrComp(Category,"config") = 0 then
-		objSc.Send Command & VbCr
+		objSc.Send CommandStart & VbCr
 		PromptExpected = "(" & Prompt & ")#"
 		objSc.WaitForString PromptExpected '<----------------------Prompt Check
 		ProcessLine = 0 '<----Success
 	elseif StrComp(Category,"test") = 0 then
-		objSc.Send Command & VbCr
+		objSc.Send CommandStart & VbCr
 		TestSuccess = objSc.WaitForString(Output,5)
 		Set ErrorFile = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True) 'Open error File ready to be written to
 		if TestSuccess = FALSE And (StrComp(WarnOrFail,"warn") = 0) then 'Output not found, and a warning
@@ -160,3 +176,4 @@ Function SaveConfig(Logfiles)
 	CompletedFile.writeline IP & Now() & " . Deployment Batch Started at " & DeployStart
 	CompletedFile.Close()
 End Function
+															
