@@ -40,22 +40,14 @@ DeployStart = Now () '<---- Used for a deployment start Time stamp.
 '<-- Deploy Config on a set of Cisco devices
 '<--------
 
-'Start loop
 DeviceLine = DeviceIP.ReadLine 'Read Header Row of CSV file and ignore
+
+'Start loop for each device
 While Not DeviceIP.atEndOfStream
 	DeviceLine = Split(DeviceIP.Readline,",")
+	
 	IP = DeviceLine(0)
-	SiteNumber = DeviceLine(1)
-	Param1 = DeviceLine(2)
-	Param2 = DeviceLine(3)
-	Param3 = DeviceLine(4)
-	Param4 = DeviceLine(5)
-	Param5 = DeviceLine(6)
-	Param6 = DeviceLine(7)
-	Param7 = DeviceLine(8)
-	Param8 = DeviceLine(9)
-	Param9 = DeviceLine(10)
-	Param10 = DeviceLine(11)
+	SiteNumber = DeviceLine(1) 'Not used yet
 	
 	Set Config = FSO.opentextfile(CommandsFile, ForReading, False)
 	save = 0
@@ -85,15 +77,9 @@ While Not DeviceIP.atEndOfStream
 		Do While Not Config.atEndOfStream
 			'Split Line Read into Category, Command, Prompt and Output and process the line
 			ConfigLine = Split(Config.ReadLine,",")
-			Category = ConfigLine(0)
-			CommandStart = ConfigLine(1)
-			Param = ConfigLine(2)
-			CommandEnd = ConfigLine(3)
-			Prompt = ConfigLine(4)
-			Output = ConfigLine(5)
-			WarnOrFail = ConfigLine(6)
 
-			ProcessCommand = ProcessLine(Category, CommandStart, Prompt, Output, Logfiles, WarnOrFail)
+			ProcessCommand = ProcessLine(ConfigLine, Logfiles, DeviceLine)
+			
 			If ProcessCommand  = 1 Then '<----Warning
 				ErrorCount = ErrorCount + 1
 			ElseIf ProcessCommand  = 2 Then '<----Failure
@@ -130,6 +116,7 @@ Wend
 
 DeviceIP.Close() 'Close Switch IP file File
 
+'
 Set Summaryfile = FSO.OpenTextFile(Logfiles&"\Summary.txt",ForAppending, True)
 Summaryfile.writeline "Deployment Started: " & DeployStart
 Summaryfile.writeline "Deployment Complete: " & Now ()
@@ -140,27 +127,63 @@ Summaryfile.writeline "Total Number of warnings: " & ErrorCount
 Summaryfile.writeline "--------------"
 Summaryfile.Close()
 
-Function ProcessLine (Category, CommandStart, Prompt, Output, Logfiles, WarnOrFail)
-	if StrComp(Category,"config") = 0 then
-		objSc.Send CommandStart & VbCr
+Function ProcessLine (ConfigLine, Logfiles, DeviceLine)
+'Split the ConfigLine into the various elements
+	Param1 = DeviceLine(2)
+	Param2 = DeviceLine(3)
+	Param3 = DeviceLine(4)
+	Param4 = DeviceLine(5)
+	Param5 = DeviceLine(6)
+	Param6 = DeviceLine(7)
+	Param7 = DeviceLine(8)
+	Param8 = DeviceLine(9)
+	Param9 = DeviceLine(10)
+	Param10 = DeviceLine(11)
+
+	Category = ConfigLine(0)
+	CommandStart = ConfigLine(1)
+	Param = ConfigLine(2)
+	CommandEnd = ConfigLine(3)
+	Prompt = ConfigLine(4)
+	Output = ConfigLine(5)
+	WarnOrFail = ConfigLine(6)
+
+	if StrComp(Param,"PARAM1") = 0 then
+		Parameter = Param1
+	elseif StrComp(Param,"PARAM2") = 0 then
+		Parameter = Param2
+	elseif StrComp(Param,"PARAM3") = 0 then
+		Parameter = Param3
+	else
+		Parameter = ""
+	end if
+	
+	objSc.Send CommandStart & " " & Parameter & " " & CommandEnd & VbCr 'Send Command to Device
+	
+	if StrComp(Category,"config") = 0 then 'Configuration Command
 		PromptExpected = "(" & Prompt & ")#"
-		objSc.WaitForString PromptExpected '<----------------------Prompt Check
-		ProcessLine = 0 '<----Success
+		objSc.WaitForString PromptExpected 'Check for correct Prompt to be returned
+		ProcessLine = 0 'Success
+		
 	elseif StrComp(Category,"test") = 0 then
-		objSc.Send CommandStart & VbCr
 		TestSuccess = objSc.WaitForString(Output,5)
 		Set ErrorFile = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True) 'Open error File ready to be written to
+		
 		if TestSuccess = FALSE And (StrComp(WarnOrFail,"warn") = 0) then 'Output not found, and a warning
 			ErrorFile.writeline IP & " Warning at " & Now() & " . Deployment Batch Started at " & DeployStart
-			ProcessLine = 1 '<----Warning
+			ProcessLine = 1 'Warning
+			
 		elseif TestSuccess = FALSE And (StrComp(WarnOrFail,"fail") = 0) then 'Output not found, and a failure
 			ErrorFile.writeline IP & " Failure. Exiting Device at " & Now() & " . Deployment Batch Started at " & DeployStart
-			ProcessLine = 2 '<----Failure
+			ProcessLine = 2 'Failure
+			
 		elseif TestSuccess = FALSE then
 			ErrorFile.writeline IP & " Command Check Failed. Exiting Device. Possible Error in Input File at " & Now() & " . Deployment Batch Started at " & DeployStart
-			ProcessLine = 3 '<----Something has gone wrong with the input file
+			ProcessLine = 3 'Something has gone wrong with the input file
+			
 		else
-			ProcessLine = 0 '<----Success
+			ProcessLine = 0 'Success
+			
 		end if
 		ErrorFile.Close()
 	end if
@@ -175,5 +198,4 @@ Function SaveConfig(Logfiles)
 	Set CompletedFile = FSO.OpenTextFile(Logfiles&"\Completed.txt",ForAppending, True)
 	CompletedFile.writeline IP & Now() & " . Deployment Batch Started at " & DeployStart
 	CompletedFile.Close()
-End Function
-															
+End Function	
