@@ -148,11 +148,11 @@ Function ProcessLine (ConfigLine, Logfiles, DeviceLine)
 	Output = ConfigLine(5)
 	WarnOrFail = ConfigLine(6)
 
-	if StrComp(Param,"PARAM1") = 0 then
+	if Param = "param1" then
 		Parameter = Param1
-	elseif StrComp(Param,"PARAM2") = 0 then
+	elseif Param = "param2" then
 		Parameter = Param2
-	elseif StrComp(Param,"PARAM3") = 0 then
+	elseif Param = "param3" then
 		Parameter = Param3
 	else
 		Parameter = ""
@@ -160,20 +160,20 @@ Function ProcessLine (ConfigLine, Logfiles, DeviceLine)
 	
 	objSc.Send CommandStart & " " & Parameter & " " & CommandEnd & VbCr 'Send Command to Device
 	
-	if StrComp(Category,"config") = 0 then 'Configuration Command
+	if Category = "config" then 'Configuration Command
 		PromptExpected = "(" & Prompt & ")#"
 		objSc.WaitForString PromptExpected 'Check for correct Prompt to be returned
 		ProcessLine = 0 'Success
 		
-	elseif StrComp(Category,"test") = 0 then
+	elseif Category = "test" then
 		TestSuccess = objSc.WaitForString(Output,5)
 		Set ErrorFile = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True) 'Open error File ready to be written to
 		
-		if TestSuccess = FALSE And (StrComp(WarnOrFail,"warn") = 0) then 'Output not found, and a warning
+		if TestSuccess = FALSE And WarnOrFail = "warn" then 'Output not found, and a warning
 			ErrorFile.writeline IP & " Warning at " & Now() & " . Deployment Batch Started at " & DeployStart
 			ProcessLine = 1 'Warning
 			
-		elseif TestSuccess = FALSE And (StrComp(WarnOrFail,"fail") = 0) then 'Output not found, and a failure
+		elseif TestSuccess = FALSE And WarnOrFail = "fail" then 'Output not found, and a failure
 			ErrorFile.writeline IP & " Failure. Exiting Device at " & Now() & " . Deployment Batch Started at " & DeployStart
 			ProcessLine = 2 'Failure
 			
@@ -198,4 +198,5 @@ Function SaveConfig(Logfiles)
 	Set CompletedFile = FSO.OpenTextFile(Logfiles&"\Completed.txt",ForAppending, True)
 	CompletedFile.writeline IP & Now() & " . Deployment Batch Started at " & DeployStart
 	CompletedFile.Close()
-End Function	
+End Function
+															
