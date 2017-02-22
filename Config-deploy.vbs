@@ -13,19 +13,31 @@ Set objW = crt.Window
 Set objDictionary = CreateObject("Scripting.Dictionary")
 
 'File containing a list of Cisco Device IPs to perform the change on. One IP per line.
-HOSTIP = objD.Prompt("Enter folder name and Path to the hosts file","Folder Name & Path","U:\script\CreateVLAN\Hosts.csv")
-Set DeviceIP = FSO.opentextfile(HOSTIP, ForReading, False)
+HostFile = objD.Prompt("Enter folder name and Path to the hosts file","Folder Name & Path","U:\script\CreateVLAN\Hosts.csv")
+
+'Check file for invalid characters
+If CheckInputFiles(HostFile) = FALSE then
+	MsgBox("Host File contains invalid characters. Often this is Extended Dash, hidden as a dash")
+	WScript.Quit
+Else	
+End If
 
 'File containing a list of commands to perform on each router. One command per line.
 CommandsFile = objD.Prompt("Enter folder name and Path to the commands file","Folder Name & Path","U:\script\CreateVLAN\Commands.csv")
 
-User = objD.Prompt("Enter YOUR Username To Get into device"&Chr(13)&Chr(13)&_
-"Same username used for all devices"," ","xxxxxxxxxx")
+'Check file for invalid characters
+If CheckInputFiles(CommandsFile) = FALSE then
+	MsgBox("Commands File contains invalid characters. Often this is Extended Dash, hidden as a dash")
+	WScript.Quit
+Else	
+End If
 
-Pass = objD.Prompt("Enter password To Get into device"&Chr(13)&Chr(13)&_
-"Password must be the same for all devices!"," ","xxx", TRUE)
-
+'Folder to recieve the log files
 Logfiles = objD.Prompt("Enter folder name and Path to save Log files In.","Folder Name & Path","U:\script\CreateVLAN\logs\")
+
+User = objD.Prompt("Enter YOUR Username to get into devices","Username","xxxxxxxxxx")
+
+Pass = objD.Prompt("Enter password to get into devices","Password","xxxxxxxx", TRUE)
 
 ErrorCount = 0
 
@@ -39,18 +51,19 @@ DeployStart = Now () '<---- Used for a deployment start Time stamp.
 '<-------- Script Purpose: Deploy
 '<-- Deploy Config on a set of Cisco devices
 '<--------
+Set Hosts = FSO.opentextfile(HostFile, ForReading, False)
 
-DeviceLine = DeviceIP.ReadLine 'Read Header Row of CSV file and ignore
+DeviceLine = Hosts.ReadLine 'Read Header Row of CSV file and ignore
 
 'Start loop for each device
-While Not DeviceIP.atEndOfStream
-	DeviceLine = Split(DeviceIP.Readline,",")
+While Not Hosts.atEndOfStream
+	DeviceLine = Split(Hosts.Readline,",")
 	
 	IP = DeviceLine(0)
 	SiteNumber = DeviceLine(1) 'Not used yet
 	
-	Set Config = FSO.opentextfile(CommandsFile, ForReading, False)
-	save = 0
+	Set Commands = FSO.opentextfile(CommandsFile, ForReading, False)
+
 	counter = counter + 1
 	
 	'<-------------------- Device Connect sequence ---------------------------------> 
@@ -69,14 +82,14 @@ While Not DeviceIP.atEndOfStream
 		objSc.WaitForString"#"
 		objSc.Send "term length 0" & vbCr '<-- disables paging of screen output
 		objSc.WaitForString"#"
-		'<-------------------- END if Connect sequence ------------------------------->
+	'<-------------------- END of Connect sequence ------------------------------->
 		
-			'<---- Read each config line in turn from the CSV file and send to the device
-			ConfigLine = Config.ReadLine 'Read Header Row of CSV file and ignore
-			
-		Do While Not Config.atEndOfStream
+		ConfigLine = Commands.ReadLine 'Read Header Row of Commands CSV file and ignore
+	
+		'<-------------------- Device Configuration sequence ---------------------------------> 	
+		Do While Not Commands.atEndOfStream '<---- Read each Commands line in turn from the CSV file and send to the device
 			'Split Line Read into Category, Command, Prompt and Output and process the line
-			ConfigLine = Split(Config.ReadLine,",")
+			ConfigLine = Split(Commands.ReadLine,",")
 
 			ProcessCommand = ProcessLine(ConfigLine, Logfiles, DeviceLine)
 			
@@ -91,22 +104,21 @@ While Not DeviceIP.atEndOfStream
 			Else '<----Success
 			End If
 		Loop
-		Config.Close() 'Close Config File
+		'<-------------------- END of Device Configuration sequence ---------------------------------> 	
+
+		Commands.Close() 'Close Config File
 		
 		objSc.Send "end" & VbCr
 		objSc.WaitForString"#"
-		save = save + 1
-					
-		if save > 0 then
-			deployed = deployed + SaveConfig(Logfiles)
-		end if
+
+		deployed = deployed + SaveConfig(Logfiles)
 		
 		objSc.Send "exit" & vbCr
 		objse.Log(False)
 		objSc.Synchronous = False
 		objSE.Disconnect
 		
-	Else
+	Else 'Device failed to connect
 		Set NoConnectfile = FSO.OpenTextFile(Logfiles&"\NoConnect.txt",ForAppending, True)
 		NoConnectfile.writeline IP
 		NoConnectfile.Close()
@@ -114,9 +126,9 @@ While Not DeviceIP.atEndOfStream
 
 Wend
 
-DeviceIP.Close() 'Close Switch IP file File
+Hosts.Close() 'Close Device IP File
 
-'
+'Write Summary
 Set Summaryfile = FSO.OpenTextFile(Logfiles&"\Summary.txt",ForAppending, True)
 Summaryfile.writeline "Deployment Started: " & DeployStart
 Summaryfile.writeline "Deployment Complete: " & Now ()
@@ -127,8 +139,8 @@ Summaryfile.writeline "Total Number of warnings: " & ErrorCount
 Summaryfile.writeline "--------------"
 Summaryfile.Close()
 
-Function ProcessLine (ConfigLine, Logfiles, DeviceLine)
-'Split the ConfigLine into the various elements
+Function ProcessLine (ConfigLine, Logfiles, DeviceLine) 'Process a line of the Commands File
+	'Split the DeviceLine into the various elements
 	Param1 = DeviceLine(2)
 	Param2 = DeviceLine(3)
 	Param3 = DeviceLine(4)
@@ -140,6 +152,7 @@ Function ProcessLine (ConfigLine, Logfiles, DeviceLine)
 	Param9 = DeviceLine(10)
 	Param10 = DeviceLine(11)
 
+	'Split the ConfigLine into the various elements
 	Category = ConfigLine(0)
 	CommandStart = ConfigLine(1)
 	Param = ConfigLine(2)
@@ -193,13 +206,33 @@ Function ProcessLine (ConfigLine, Logfiles, DeviceLine)
 	end if
 End Function
 
-Function SaveConfig(Logfiles)
+Function SaveConfig(Logfiles) 'Process a line of the Commands File
 	objSc.Send "copy run start" & VbCr
 	objSc.WaitForString"[startup-config]?"
 	objSc.Send VbCr
 	objSc.WaitForString"#"
-	SaveConfig = 1
+	SaveConfig = 1 'Return Code of 1 if successful save
 	Set CompletedFile = FSO.OpenTextFile(Logfiles&"\Completed.txt",ForAppending, True)
 	CompletedFile.writeline IP & Now() & " . Deployment Batch Started at " & DeployStart
 	CompletedFile.Close()
 End Function
+
+'----------------------------------------------------------------------------------------------------------------------------
+'Name       : CheckInputFiles -> Checks input files for extended ASCII (a specific problem is EN DASH).
+'Parameters : Filename        -> File containing texy to check for extended ASCII.
+'Return     : CheckInputFiles -> Returns False if the files contains extended ASCII otherwise returns True.
+'----------------------------------------------------------------------------------------------------------------------------
+Function CheckInputFiles(Filename)
+	Set File = FSO.opentextfile(Filename, ForReading, False)
+	Do Until File.atEndOfStream
+		Character = File.Read(1) 'Read a character
+		If Asc(Character) > 126 then
+			CheckInputFiles = FALSE 'Extended ASCII is Present
+			Exit Do
+		Else
+			CheckInputFiles = TRUE  'Extended ASCII is Not Present
+		End If
+	Loop
+	File.Close()
+End Function
+																	
