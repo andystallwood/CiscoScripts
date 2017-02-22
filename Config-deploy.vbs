@@ -148,15 +148,19 @@ Function ProcessLine (ConfigLine, Logfiles, DeviceLine)
 	Output = ConfigLine(5)
 	WarnOrFail = ConfigLine(6)
 
-	if Param = "param1" then
-		Parameter = Param1
-	elseif Param = "param2" then
-		Parameter = Param2
-	elseif Param = "param3" then
-		Parameter = Param3
-	else
-		Parameter = ""
-	end if
+	Select Case Param
+	Case "param1"  : Parameter = Param1
+	Case "param2"  : Parameter = Param2
+	Case "param3"  : Parameter = Param3
+	Case "param4"  : Parameter = Param4
+	Case "param5"  : Parameter = Param5
+	Case "param6"  : Parameter = Param6
+	Case "param7"  : Parameter = Param7
+	Case "param8"  : Parameter = Param8
+	Case "param9"  : Parameter = Param9
+	Case "param10" : Parameter = Param10
+	Case Else      : Parameter = ""
+	End Select
 	
 	objSc.Send CommandStart & " " & Parameter & " " & CommandEnd & VbCr 'Send Command to Device
 	
@@ -199,4 +203,3 @@ Function SaveConfig(Logfiles)
 	CompletedFile.writeline IP & Now() & " . Deployment Batch Started at " & DeployStart
 	CompletedFile.Close()
 End Function
-															
