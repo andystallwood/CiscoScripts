@@ -166,7 +166,7 @@ Function ProcessLine (ConfigLine, Logfiles, DeviceLine)
 	CommandStart = ConfigLine(1)
 	Param = ConfigLine(2)
 	CommandEnd = ConfigLine(3)
-	Prompt = ConfigLine(4)
+	PromptExpected = ConfigLine(4)
 	Output = ConfigLine(5)
 	WarnOrFail = ConfigLine(6)
 
@@ -187,7 +187,6 @@ Function ProcessLine (ConfigLine, Logfiles, DeviceLine)
 	objSc.Send CommandStart & " " & Parameter & " " & CommandEnd & VbCr 'Send Command to Device
 	
 	if Category = "config" then 'Configuration Command
-		PromptExpected = "(" & Prompt & ")#"
 		objSc.WaitForString PromptExpected 'Check for correct Prompt to be returned
 		ProcessLine = 0 'Success
 		
@@ -224,7 +223,7 @@ End Function
 '----------------------------------------------------------------------------------------------------------------------------
 
 Function SaveConfig(Logfiles, IP, HostName) 'Save the config and write to the log files
-	objSc.Send "copy run start" & VbCr
+	objSc.Send "copy running-config startup-config" & VbCr
 	objSc.WaitForString"[startup-config]?"
 	objSc.Send VbCr
 	objSc.WaitForString"#"
