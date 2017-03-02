@@ -184,7 +184,7 @@ Function ProcessLine (ConfigLine, Logfiles, DeviceLine)
 	Case Else      : Parameter = ""
 	End Select
 	
-	objSc.Send CommandStart & " " & Parameter & " " & CommandEnd & VbCr 'Send Command to Device
+	objSc.Send CommandStart & Parameter & CommandEnd & VbCr 'Send Command to Device
 	
 	if Category = "config" then 'Configuration Command
 		objSc.WaitForString PromptExpected 'Check for correct Prompt to be returned
