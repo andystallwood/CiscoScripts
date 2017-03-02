@@ -60,7 +60,7 @@ While Not Hosts.atEndOfStream
 	DeviceLine = Split(Hosts.Readline,",")
 	
 	IP = DeviceLine(0)
-	SiteNumber = DeviceLine(1) 'Not used yet
+	HostName = DeviceLine(1)
 	
 	Set Commands = FSO.opentextfile(CommandsFile, ForReading, False)
 
@@ -111,7 +111,7 @@ While Not Hosts.atEndOfStream
 		objSc.Send "end" & VbCr
 		objSc.WaitForString"#"
 
-		deployed = deployed + SaveConfig(Logfiles)
+		deployed = deployed + SaveConfig(Logfiles, IP, HostName)
 		
 		objSc.Send "exit" & vbCr
 		objse.Log(False)
@@ -139,8 +139,17 @@ Summaryfile.writeline "Total Number of warnings: " & ErrorCount
 Summaryfile.writeline "--------------"
 Summaryfile.Close()
 
-Function ProcessLine (ConfigLine, Logfiles, DeviceLine) 'Process a line of the Commands File
+'----------------------------------------------------------------------------------------------------------------------------
+'Name       : ProcessLine -> Processes a line of the commands file.
+'Parameters : ConfigLine  -> Comma seperated string with the config parameters present.
+'           : Logfiles    -> Directory containing the log files.
+'           : DeviceLine  -> Comma seperated string containing information about the device.
+'Return     : SaveConfig  -> Returns 1 if the config was saved succesfully.
+'----------------------------------------------------------------------------------------------------------------------------
+
+Function ProcessLine (ConfigLine, Logfiles, DeviceLine)
 	'Split the DeviceLine into the various elements
+	HostName = DeviceLine(1)
 	Param1 = DeviceLine(2)
 	Param2 = DeviceLine(3)
 	Param3 = DeviceLine(4)
@@ -187,11 +196,11 @@ Function ProcessLine (ConfigLine, Logfiles, DeviceLine) 'Process a line of the C
 		Set ErrorFile = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True) 'Open error File ready to be written to
 		
 		if TestSuccess = FALSE And WarnOrFail = "warn" then 'Output not found, and a warning
-			ErrorFile.writeline IP & " Warning at " & Now() & " . Deployment Batch Started at " & DeployStart
+			ErrorFile.writeline IP & " " & HostName & " Warning at " & Now() & " . Deployment Batch Started at " & DeployStart
 			ProcessLine = 1 'Warning
 			
 		elseif TestSuccess = FALSE And WarnOrFail = "fail" then 'Output not found, and a failure
-			ErrorFile.writeline IP & " Failure. Exiting Device at " & Now() & " . Deployment Batch Started at " & DeployStart
+			ErrorFile.writeline IP &  " " & HostName & " Failure. Exiting Device at " & Now() & " . Deployment Batch Started at " & DeployStart
 			ProcessLine = 2 'Failure
 			
 		elseif TestSuccess = FALSE then
@@ -206,20 +215,28 @@ Function ProcessLine (ConfigLine, Logfiles, DeviceLine) 'Process a line of the C
 	end if
 End Function
 
-Function SaveConfig(Logfiles) 'Process a line of the Commands File
+'----------------------------------------------------------------------------------------------------------------------------
+'Name       : SaveConfig -> Saves config on the device and writes an entry into the Completed.txt file.
+'Parameters : Logfiles   -> Directory containing the log files.
+'           : IP         -> IP address of device
+'			: HostName   -> HostName of device
+'Return     : SaveConfig -> Returns 1 if the config was saved succesfully.
+'----------------------------------------------------------------------------------------------------------------------------
+
+Function SaveConfig(Logfiles, IP, HostName) 'Save the config and write to the log files
 	objSc.Send "copy run start" & VbCr
 	objSc.WaitForString"[startup-config]?"
 	objSc.Send VbCr
 	objSc.WaitForString"#"
 	SaveConfig = 1 'Return Code of 1 if successful save
 	Set CompletedFile = FSO.OpenTextFile(Logfiles&"\Completed.txt",ForAppending, True)
-	CompletedFile.writeline IP & Now() & " . Deployment Batch Started at " & DeployStart
+	CompletedFile.writeline IP & " " & HostName & " " & Now() & " . Deployment Batch Started at " & DeployStart
 	CompletedFile.Close()
 End Function
 
 '----------------------------------------------------------------------------------------------------------------------------
 'Name       : CheckInputFiles -> Checks input files for extended ASCII (a specific problem is EN DASH).
-'Parameters : Filename        -> File containing texy to check for extended ASCII.
+'Parameters : Filename        -> File containing text to check for extended ASCII.
 'Return     : CheckInputFiles -> Returns False if the files contains extended ASCII otherwise returns True.
 '----------------------------------------------------------------------------------------------------------------------------
 Function CheckInputFiles(Filename)
