@@ -1,7 +1,0 @@
-CATEGORY,COMMANDSTART,PARAM,COMMANDEND,PROMPT AFTER COMMAND,EXPECTED RESPONSE,WARNORFAIL
-config,conf t,,,config,NA,NA
-test,do sh ip access-list,param1,,NA,Extended,fail
-config,ip access-list extended,param2,,config-ext-nacl,NA,NA
-config,ip access-list extended,param3,,config-ext-nacl,NA,NA
-config,no ip access-list extended,param2,,config,NA,NA
-config,no ip access-list extended,param3,,config,NA,NA
