@@ -1,6 +1,6 @@
 # $language = "VBScript"
 # $interface = "1.0"
-Dim FSO, Shell, deployed
+Dim FSO, Shell
 Const ForReading = 1
 Const ForWriting = 2
 Const ForAppending = 8
@@ -11,6 +11,11 @@ Set objD = crt.Dialog
 Set objSe = crt.Session
 Set objW = crt.Window
 Set objDictionary = CreateObject("Scripting.Dictionary")
+
+TotalDevices = 0
+Updated = 0
+WarnCount = 0
+FailCount = 0
 
 'File containing a list of Cisco Device IPs to perform the change on. One IP per line.
 HostFile = objD.Prompt("Enter folder name and Path to the hosts file","Folder Name & Path","U:\script\CreateVLAN\Hosts.csv")
@@ -39,8 +44,6 @@ User = objD.Prompt("Enter YOUR Username to get into devices","Username","xxxxxxx
 
 Pass = objD.Prompt("Enter password to get into devices","Password","xxxxxxxx", TRUE)
 
-ErrorCount = 0
-
 If FSO.FolderExists(Logfiles) Then
 Else
 	FSO.CreateFolder(Logfiles)
@@ -64,7 +67,7 @@ While Not Hosts.atEndOfStream
 	
 	Set Commands = FSO.opentextfile(CommandsFile, ForReading, False)
 
-	counter = counter + 1
+	TotalDevices = TotalDevices + 1
 	
 	'<-------------------- Device Connect sequence ---------------------------------> 
 	On Error Resume Next
@@ -94,12 +97,12 @@ While Not Hosts.atEndOfStream
 			ProcessCommand = ProcessLine(ConfigLine, Logfiles, DeviceLine)
 			
 			If ProcessCommand  = 1 Then '<----Warning
-				ErrorCount = ErrorCount + 1
+				WarnCount = WarnCount + 1
 			ElseIf ProcessCommand  = 2 Then '<----Failure
-				ErrorCount = ErrorCount + 1
+				FailCount = FailCount + 1
 				Exit Do
 			ElseIf ProcessCommand  = 3 Then '<----Input File Failure
-				ErrorCount = ErrorCount + 1
+				FailCount = FailCount + 1
 				Exit Do
 			Else '<----Success
 			End If
@@ -111,7 +114,7 @@ While Not Hosts.atEndOfStream
 		objSc.Send "end" & VbCr
 		objSc.WaitForString"#"
 
-		deployed = deployed + SaveConfig(Logfiles, IP, HostName)
+		Updated = Updated + SaveConfig(Logfiles, IP, HostName)
 		
 		objSc.Send "exit" & vbCr
 		objse.Log(False)
@@ -130,12 +133,14 @@ Hosts.Close() 'Close Device IP File
 
 'Write Summary
 Set Summaryfile = FSO.OpenTextFile(Logfiles&"\Summary.txt",ForAppending, True)
+Summaryfile.writeline "--------------"
 Summaryfile.writeline "Deployment Started: " & DeployStart
 Summaryfile.writeline "Deployment Complete: " & Now ()
 Summaryfile.writeline "--------------"
-Summaryfile.writeline "Total Number of devices: " & counter
-Summaryfile.writeline "Total Number of Updated: " & deployed
-Summaryfile.writeline "Total Number of warnings: " & ErrorCount
+Summaryfile.writeline "Total Number of Devices: " & TotalDevices
+Summaryfile.writeline "Total Number of Updated: " & Updated
+Summaryfile.writeline "Total Number of warnings: " & WarnCount
+Summaryfile.writeline "Total Number of failures: " & FailCount
 Summaryfile.writeline "--------------"
 Summaryfile.Close()
 
@@ -257,4 +262,3 @@ Function CheckInputFiles(Filename)
 	Loop
 	File.Close()
 End Function
-																	
