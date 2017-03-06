@@ -144,6 +144,13 @@ Summaryfile.writeline "Total Number of failures: " & FailCount
 Summaryfile.writeline "--------------"
 Summaryfile.Close()
 
+MsgBox _
+"Devices Updated: " & TotalDevices & vbCrLf & _
+"Warnings: " & WarnCount & vbCrLf & _
+"Failures: " & FailCount, _
+vbOKOnly+vbInformation, _
+"Script Completed"
+
 '----------------------------------------------------------------------------------------------------------------------------
 'Name       : ProcessLine -> Processes a line of the commands file.
 'Parameters : ConfigLine  -> Comma seperated string with the config parameters present.
