@@ -75,9 +75,9 @@ While Not Hosts.atEndOfStream
 		'<-------------------- Create logfile for command/logfile changes
 		objse.logfilename = Logfiles&"\%Y%M%D-%h%m-"&IP&".cfg"
 		objse.Log(True) '<-- This opens the logfile and captures the SecureCRT output to the timestamped ".cfg" file
-		enablepass = objSc.waitforstrings(">", "#")
+		objSc.waitforstring">"
 		objSc.Send "enable" & vbCr
-		objSc.WaitForString":"
+		objSc.WaitForString"Password:"
 		objSc.Send Pass & vbCr
 		objSc.WaitForString"#"
 		objSc.Send "term length 0" & vbCr '<-- disables paging of screen output
@@ -185,14 +185,20 @@ Function ProcessLine (ConfigLine, Logfiles, DeviceLine)
 	End Select
 	
 	objSc.Send CommandStart & Parameter & CommandEnd & VbCr 'Send Command to Device
+
+	Set ErrorFile = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True) 'Open error File ready to be written to
 	
 	if Category = "config" then 'Configuration Command
-		objSc.WaitForString PromptExpected 'Check for correct Prompt to be returned
-		ProcessLine = 0 'Success
+		ConfigSuccess = objSc.WaitForString(PromptExpected,5) 'Check for correct Prompt to be returned
+		If ConfigSuccess = TRUE then
+			ProcessLine = 0 'Success
+		Else
+			ErrorFile.writeline IP &  " " & HostName & " Failure. Exiting Device at " & Now() & " . Deployment Batch Started at " & DeployStart			
+			ProcessLine = 2 'Failure
+		End If
 		
 	elseif Category = "test" then
 		TestSuccess = objSc.WaitForString(Output,5)
-		Set ErrorFile = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True) 'Open error File ready to be written to
 		
 		if TestSuccess = FALSE And WarnOrFail = "warn" then 'Output not found, and a warning
 			ErrorFile.writeline IP & " " & HostName & " Warning at " & Now() & " . Deployment Batch Started at " & DeployStart
