@@ -118,14 +118,20 @@ Hosts.Close() 'Close Device IP File
 
 'Write Summary
 Set Summaryfile = FSO.OpenTextFile(Logfiles&"\Summary.txt",ForAppending, True)
-Summaryfile.writeline "Deployment Started: " & DeployStart
-Summaryfile.writeline "Deployment Complete: " & Now ()
+Summaryfile.writeline "Scrape Started: " & DeployStart
+Summaryfile.writeline "Scrape Complete: " & Now ()
 Summaryfile.writeline "--------------"
 Summaryfile.writeline "Total Number of devices: " & counter
-Summaryfile.writeline "Total Number of Updated: " & deployed
+Summaryfile.writeline "Total Number Scraped: " & deployed
 Summaryfile.writeline "Total Number of warnings: " & ErrorCount
 Summaryfile.writeline "--------------"
 Summaryfile.Close()
+
+MsgBox _
+"Devices Scraped: " & deployed & vbCrLf & _
+"Warnings: " &ErrorCount, _
+vbOKOnly+vbInformation, _
+"Script Completed"
 
 '----------------------------------------------------------------------------------------------------------------------------
 'Name       : ProcessLine -> Processes a line of the commands file.
