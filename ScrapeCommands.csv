@@ -1,2 +1,2 @@
 COMMAND
-show ip interface brief | include 100 *10\.5[12]\.[1-9]*\.[1-9]* *YES NVRAM  up
+show ip interface brief | include 100 *10\.5[12]\.[0-9]*\.[0-9]* *YES.*up
