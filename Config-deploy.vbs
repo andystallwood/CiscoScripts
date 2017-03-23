@@ -16,6 +16,8 @@ TotalDevices = 0
 Updated = 0
 WarnCount = 0
 FailCount = 0
+NoConnectCount = 0
+SuccessCount = 0
 
 'Directory for input and log files
 Directory = objD.Prompt("Enter Folder Path for the input and output files","Folder Path","U:\script\")
@@ -96,7 +98,8 @@ While Not Hosts.atEndOfStream
 		
 		ConfigLine = Commands.ReadLine 'Read Header Row of Commands CSV file and ignore
 	
-		'<-------------------- Device Configuration sequence ---------------------------------> 	
+		'<-------------------- Device Configuration sequence --------------------------------->
+		Success = TRUE
 		Do While Not Commands.atEndOfStream '<---- Read each Commands line in turn from the CSV file and send to the device
 			'Split Line Read into Category, Command, Prompt and Output and process the line
 			ConfigLine = Split(Commands.ReadLine,",")
@@ -105,23 +108,30 @@ While Not Hosts.atEndOfStream
 			
 			If ProcessCommand  = 1 Then '<----Warning
 				WarnCount = WarnCount + 1
+				Success = FALSE
 			ElseIf ProcessCommand  = 2 Then '<----Failure
 				FailCount = FailCount + 1
+				Success = FALSE
 				Exit Do
 			ElseIf ProcessCommand  = 3 Then '<----Input File Failure
 				FailCount = FailCount + 1
+				Success = FALSE
 				Exit Do
 			Else '<----Success
 			End If
 		Loop
 		'<-------------------- END of Device Configuration sequence ---------------------------------> 	
-
+		
 		Commands.Close() 'Close Config File
 		
 		objSc.Send "end" & VbCr
 		objSc.WaitForString"#"
 
 		Updated = Updated + SaveConfig(Logfiles, IP, HostName)
+		
+		If Success = TRUE Then
+			SuccessCount = SuccessCount + 1
+		End If
 		
 		objSc.Send "exit" & vbCr
 		objse.Log(False)
@@ -131,6 +141,7 @@ While Not Hosts.atEndOfStream
 	Else 'Device failed to connect
 		Set NoConnectfile = FSO.OpenTextFile(Logfiles&"\NoConnect.txt",ForAppending, True)
 		NoConnectfile.writeline IP &  " " & HostName & " Failed to connect at " & Now() & " . Deployment Batch Started at " & DeployStart	
+		NoConnectCount = NoConnectCount + 1
 		NoConnectfile.Close()
 	End IF
 
@@ -140,15 +151,18 @@ Hosts.Close() 'Close Device IP File
 
 'Write Summary
 Set Summaryfile = FSO.OpenTextFile(Logfiles&"\Summary.txt",ForAppending, True)
-Summaryfile.writeline "--------------"
-Summaryfile.writeline "Deployment Started: " & DeployStart
-Summaryfile.writeline "Deployment Complete: " & Now ()
-Summaryfile.writeline "--------------"
-Summaryfile.writeline "Total Number of Devices: " & TotalDevices
-Summaryfile.writeline "Total Number of Updated: " & Updated
-Summaryfile.writeline "Total Number of warnings: " & WarnCount
-Summaryfile.writeline "Total Number of failures: " & FailCount
-Summaryfile.writeline "--------------"
+Summaryfile.writeline "------------------------------"
+Summaryfile.writeline "Deployment Started        : " & DeployStart
+Summaryfile.writeline "Deployment Complete       : " & Now ()
+Summaryfile.writeline "------------------------------"
+Summaryfile.writeline "Total Number of Devices   : " & TotalDevices
+Summaryfile.writeline "Number of Connect Failures: " & NoConnectCount
+Summaryfile.writeline "Number Connected          : " & Updated
+Summaryfile.writeline "------------------------------"
+Summaryfile.writeline "Number Successful         : " & SuccessCount
+Summaryfile.writeline "Number of warnings        : " & WarnCount
+Summaryfile.writeline "Number of failures        : " & FailCount
+Summaryfile.writeline "-------------------------------"
 Summaryfile.Close()
 
 MsgBox _
@@ -276,3 +290,4 @@ Function CheckInputFiles(Filename)
 	Loop
 	File.Close()
 End Function
+																	
