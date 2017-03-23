@@ -81,6 +81,7 @@ While Not Hosts.atEndOfStream
 	'<-------------------- Device Connect sequence ---------------------------------> 
 	On Error Resume Next
 	crt.session.connect "/SSH2 /AcceptHostKeys /L " & User & " /PASSWORD " & Pass & " " & IP & " "
+		
 	On Error Goto 0
 	If ( crt.Session.Connected ) Then
 		objsc.Synchronous = True
@@ -140,7 +141,7 @@ While Not Hosts.atEndOfStream
 		
 	Else 'Device failed to connect
 		Set NoConnectfile = FSO.OpenTextFile(Logfiles&"\NoConnect.txt",ForAppending, True)
-		NoConnectfile.writeline IP &  " " & HostName & " Failed to connect at " & Now() & " . Deployment Batch Started at " & DeployStart	
+		NoConnectfile.writeline IP &  " " & HostName & " at " & Now() & " . Deployment Batch Started at " & DeployStart
 		NoConnectCount = NoConnectCount + 1
 		NoConnectfile.Close()
 	End IF
@@ -166,7 +167,8 @@ Summaryfile.writeline "-------------------------------"
 Summaryfile.Close()
 
 MsgBox _
-"Devices Updated: " & TotalDevices & vbCrLf & _
+"Total Number of Devices: " & TotalDevices & vbCrLf & _
+"Number of Connect Fails: " & NoConnectCount & vbCrLf & _
 "Warnings: " & WarnCount & vbCrLf & _
 "Failures: " & FailCount, _
 vbOKOnly+vbInformation, _
