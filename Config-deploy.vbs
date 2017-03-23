@@ -17,8 +17,15 @@ Updated = 0
 WarnCount = 0
 FailCount = 0
 
+'Directory for input and log files
+Directory = objD.Prompt("Enter Folder Path for the input and output files","Folder Path","U:\script\")
+
+HostFile = Directory & "Hosts.csv"
+CommandsFile = Directory & "Commands.csv"
+Logfiles = Directory & "logs\"
+
 'File containing a list of Cisco Device IPs to perform the change on. One IP per line.
-HostFile = objD.Prompt("Enter folder name and Path to the hosts file","Folder Name & Path","U:\script\CreateVLAN\Hosts.csv")
+HostFile = objD.Prompt("Enter filename and Path to the hosts file","Hosts File Name & Path",HostFile)
 
 'Check file for invalid characters
 If CheckInputFiles(HostFile) = FALSE then
@@ -28,7 +35,7 @@ Else
 End If
 
 'File containing a list of commands to perform on each router. One command per line.
-CommandsFile = objD.Prompt("Enter folder name and Path to the commands file","Folder Name & Path","U:\script\CreateVLAN\Commands.csv")
+CommandsFile = objD.Prompt("Enter filename and Path to the commands file","Command File Name & Path",CommandsFile)
 
 'Check file for invalid characters
 If CheckInputFiles(CommandsFile) = FALSE then
@@ -38,9 +45,9 @@ Else
 End If
 
 'Folder to recieve the log files
-Logfiles = objD.Prompt("Enter folder name and Path to save Log files In.","Folder Name & Path","U:\script\CreateVLAN\logs\")
+Logfiles = objD.Prompt("Enter folder Path to save Log files In.","Log Folder Path",Logfiles)
 
-User = objD.Prompt("Enter YOUR Username to get into devices","Username","xxxxxxxxxx")
+User = objD.Prompt("Enter username to get into devices","Username","xxxxxxxxxx")
 
 Pass = objD.Prompt("Enter password to get into devices","Password","xxxxxxxx", TRUE)
 
