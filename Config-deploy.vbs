@@ -130,7 +130,7 @@ While Not Hosts.atEndOfStream
 		
 	Else 'Device failed to connect
 		Set NoConnectfile = FSO.OpenTextFile(Logfiles&"\NoConnect.txt",ForAppending, True)
-		NoConnectfile.writeline IP
+		NoConnectfile.writeline IP &  " " & HostName & " Failed to connect at " & Now() & " . Deployment Batch Started at " & DeployStart	
 		NoConnectfile.Close()
 	End IF
 
