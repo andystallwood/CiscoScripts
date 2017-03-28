@@ -96,6 +96,7 @@ While Not Hosts.atEndOfStream
 		objSc.Send "term length 0" & vbCr '<-- disables paging of screen output
 		objSc.WaitForString"#"
 	'<-------------------- END of Connect sequence ------------------------------->
+		IP = LEFT(IP & "        ", 15) 'Pad the IP with spaces on the right so the text files format nicely
 		
 		ConfigLine = Commands.ReadLine 'Read Header Row of Commands CSV file and ignore
 	
@@ -127,7 +128,7 @@ While Not Hosts.atEndOfStream
 		
 		objSc.Send "end" & VbCr
 		objSc.WaitForString"#"
-
+		
 		Updated = Updated + SaveConfig(Logfiles, IP, HostName)
 		
 		If Success = TRUE Then
@@ -164,6 +165,11 @@ Summaryfile.writeline "Number Successful         : " & SuccessCount
 Summaryfile.writeline "Number of warnings        : " & WarnCount
 Summaryfile.writeline "Number of failures        : " & FailCount
 Summaryfile.writeline "-------------------------------"
+Summaryfile.writeline "Hostfile Used             : " & HostFile
+Summaryfile.writeline "Command File Used         : " & CommandsFile
+Summaryfile.writeline "-------------------------------"
+Summaryfile.writeline ""
+Summaryfile.writeline ""
 Summaryfile.Close()
 
 MsgBox _
@@ -236,15 +242,15 @@ Function ProcessLine (ConfigLine, Logfiles, DeviceLine)
 		TestSuccess = objSc.WaitForString(Output,5)
 		
 		if TestSuccess = FALSE And WarnOrFail = "warn" then 'Output not found, and a warning
-			ErrorFile.writeline IP & " " & HostName & " Warning at " & Now() & " . Deployment Batch Started at " & DeployStart
+			ErrorFile.writeline IP & " " & HostName & " Warning at " & Now() & ". Deployment Batch Started at " & DeployStart
 			ProcessLine = 1 'Warning
 			
 		elseif TestSuccess = FALSE And WarnOrFail = "fail" then 'Output not found, and a failure
-			ErrorFile.writeline IP &  " " & HostName & " Failure. Exiting Device at " & Now() & " . Deployment Batch Started at " & DeployStart
+			ErrorFile.writeline IP &  " " & HostName & " Failure. Exiting Device at " & Now() & ". Deployment Batch Started at " & DeployStart
 			ProcessLine = 2 'Failure
 			
 		elseif TestSuccess = FALSE then
-			ErrorFile.writeline IP & " Command Check Failed. Exiting Device. Possible Error in Input File at " & Now() & " . Deployment Batch Started at " & DeployStart
+			ErrorFile.writeline IP & " Command Check Failed. Exiting Device. Possible Error in Input File at " & Now() & ". Deployment Batch Started at " & DeployStart
 			ProcessLine = 3 'Something has gone wrong with the input file
 			
 		else
@@ -270,7 +276,7 @@ Function SaveConfig(Logfiles, IP, HostName) 'Save the config and write to the lo
 	objSc.WaitForString"#"
 	SaveConfig = 1 'Return Code of 1 if successful save
 	Set CompletedFile = FSO.OpenTextFile(Logfiles&"\Completed.txt",ForAppending, True)
-	CompletedFile.writeline IP & " " & HostName & " " & Now() & " . Deployment Batch Started at " & DeployStart
+	CompletedFile.writeline IP & " " & HostName & " " & Now() & ". Deployment Batch Started at " & DeployStart
 	CompletedFile.Close()
 End Function
 
@@ -292,4 +298,3 @@ Function CheckInputFiles(Filename)
 	Loop
 	File.Close()
 End Function
-																	
