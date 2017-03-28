@@ -13,7 +13,7 @@ Set objW = crt.Window
 Set objDictionary = CreateObject("Scripting.Dictionary")
 
 TotalDevices = 0
-Updated = 0
+ConnectedCount = 0
 WarnCount = 0
 FailCount = 0
 NoConnectCount = 0
@@ -60,6 +60,8 @@ End IF
 
 DeployStart = Now () '<---- Used for a deployment start Time stamp.
 
+Set ErrorFile = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True) 'Open error File ready to be written to
+
 '<-------- Script Purpose: Deploy
 '<-- Deploy Config on a set of Cisco devices
 '<--------
@@ -88,48 +90,55 @@ While Not Hosts.atEndOfStream
 		'<-------------------- Create logfile for command/logfile changes
 		objse.logfilename = Logfiles&"\%Y%M%D-%h%m-"&IP&".cfg"
 		objse.Log(True) '<-- This opens the logfile and captures the SecureCRT output to the timestamped ".cfg" file
-		objSc.waitforstring">"
-		objSc.Send "enable" & vbCr
-		objSc.WaitForString"Password:"
-		objSc.Send Pass & vbCr
-		objSc.WaitForString"#"
-		objSc.Send "term length 0" & vbCr '<-- disables paging of screen output
-		objSc.WaitForString"#"
-	'<-------------------- END of Connect sequence ------------------------------->
-		IP = LEFT(IP & "        ", 15) 'Pad the IP with spaces on the right so the text files format nicely
-		
-		ConfigLine = Commands.ReadLine 'Read Header Row of Commands CSV file and ignore
-	
-		'<-------------------- Device Configuration sequence --------------------------------->
 		Success = TRUE
-		Do While Not Commands.atEndOfStream '<---- Read each Commands line in turn from the CSV file and send to the device
-			'Split Line Read into Category, Command, Prompt and Output and process the line
-			ConfigLine = Split(Commands.ReadLine,",")
+		IP = LEFT(IP & "        ", 15) 'Pad the IP with spaces on the right so the text files format nicely
+		CorrectHost = objSc.WaitForString(HostName &">",5) 'Check for correct Prompt to be returned
+		If CorrectHost = TRUE then 'Hostname matches IP address
+			objSc.Send "enable" & vbCr
+			objSc.WaitForString"Password:"
+			objSc.Send Pass & vbCr
+			objSc.WaitForString"#"
+			objSc.Send "term length 0" & vbCr '<-- disables paging of screen output
+			objSc.WaitForString"#"
+			'<-------------------- END of Connect sequence ------------------------------->
 
-			ProcessCommand = ProcessLine(ConfigLine, Logfiles, DeviceLine)
+			ConfigLine = Commands.ReadLine 'Read Header Row of Commands CSV file and ignore
+	
+			'<-------------------- Device Configuration sequence --------------------------------->
+
+			Do While Not Commands.atEndOfStream '<---- Read each Commands line in turn from the CSV file and send to the device
+				'Split Line Read into Category, Command, Prompt and Output and process the line
+				ConfigLine = Split(Commands.ReadLine,",")
+
+				ProcessCommand = ProcessLine(ConfigLine, Logfiles, DeviceLine)
 			
-			If ProcessCommand  = 1 Then '<----Warning
-				WarnCount = WarnCount + 1
-				Success = FALSE
-			ElseIf ProcessCommand  = 2 Then '<----Failure
-				FailCount = FailCount + 1
-				Success = FALSE
-				Exit Do
-			ElseIf ProcessCommand  = 3 Then '<----Input File Failure
-				FailCount = FailCount + 1
-				Success = FALSE
-				Exit Do
-			Else '<----Success
-			End If
-		Loop
-		'<-------------------- END of Device Configuration sequence ---------------------------------> 	
-		
-		Commands.Close() 'Close Config File
-		
-		objSc.Send "end" & VbCr
-		objSc.WaitForString"#"
-		
-		Updated = Updated + SaveConfig(Logfiles, IP, HostName)
+				If ProcessCommand  = 1 Then '<----Warning
+					WarnCount = WarnCount + 1
+					Success = FALSE
+				ElseIf ProcessCommand  = 2 Then '<----Failure
+					FailCount = FailCount + 1
+					Success = FALSE
+					Exit Do
+				ElseIf ProcessCommand  = 3 Then '<----Input File Failure
+					FailCount = FailCount + 1
+					Success = FALSE
+					Exit Do
+				Else '<----Success
+				End If
+			Loop
+			'<-------------------- END of Device Configuration sequence ---------------------------------> 	
+			Success = TRUE
+			Commands.Close() 'Close Config File
+			objSc.Send "end" & VbCr
+			objSc.WaitForString"#"
+			ConnectedCount = ConnectedCount + SaveConfig(Logfiles, IP, HostName) ' Save Config and update Updated Count if succesful save.
+			
+		Else ' Hostname does not match IP address
+			Success = FALSE
+			ErrorFile.writeline IP &  " " & HostName & " Hostname doesn't match IP address " & Now() & ". Deployment Batch Started at " & DeployStart	
+			ConnectedCount = ConnectedCount + 1
+			FailCount = FailCount + 1
+		End If
 		
 		If Success = TRUE Then
 			SuccessCount = SuccessCount + 1
@@ -149,7 +158,9 @@ While Not Hosts.atEndOfStream
 
 Wend
 
-Hosts.Close() 'Close Device IP File
+'Close files
+Hosts.Close()
+ErrorFile.Close()
 
 'Write Summary
 Set Summaryfile = FSO.OpenTextFile(Logfiles&"\Summary.txt",ForAppending, True)
@@ -227,8 +238,6 @@ Function ProcessLine (ConfigLine, Logfiles, DeviceLine)
 	
 	objSc.Send CommandStart & Parameter & CommandEnd & VbCr 'Send Command to Device
 
-	Set ErrorFile = FSO.OpenTextFile(Logfiles&"\Errors.txt",ForAppending, True) 'Open error File ready to be written to
-	
 	if Category = "config" then 'Configuration Command
 		ConfigSuccess = objSc.WaitForString(PromptExpected,5) 'Check for correct Prompt to be returned
 		If ConfigSuccess = TRUE then
@@ -257,7 +266,6 @@ Function ProcessLine (ConfigLine, Logfiles, DeviceLine)
 			ProcessLine = 0 'Success
 			
 		end if
-		ErrorFile.Close()
 	end if
 End Function
 
