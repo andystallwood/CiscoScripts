@@ -31,7 +31,7 @@ HostFile = objD.Prompt("Enter filename and Path to the hosts file","Hosts File N
 
 'Check file for invalid characters
 If CheckInputFiles(HostFile) = FALSE then
-	MsgBox("Host File contains invalid characters. Often this is Extended Dash, hidden as a dash")
+	MsgBox("Host File contains invalid characters. Often this is Extended Dash, hidden as a dash. Open the file in Notepad++ and set Encoding to UTF-8 to see where")
 	WScript.Quit
 Else	
 End If
@@ -41,7 +41,7 @@ CommandsFile = objD.Prompt("Enter filename and Path to the commands file","Comma
 
 'Check file for invalid characters
 If CheckInputFiles(CommandsFile) = FALSE then
-	MsgBox("Commands File contains invalid characters. Often this is Extended Dash, hidden as a dash")
+	MsgBox("Commands File contains invalid characters. Often this is Extended Dash, hidden as a dash. Open the file in Notepad++ and set Encoding to UTF-8 to see where")
 	WScript.Quit
 Else	
 End If
