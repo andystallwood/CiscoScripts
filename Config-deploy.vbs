@@ -30,21 +30,13 @@ Logfiles = Directory & "logs\"
 HostFile = objD.Prompt("Enter filename and Path to the hosts file","Hosts File Name & Path",HostFile)
 
 'Check file for invalid characters
-If CheckInputFiles(HostFile) = FALSE then
-	MsgBox("Host File contains invalid characters. Often this is Extended Dash, hidden as a dash. Open the file in Notepad++ and set Encoding to UTF-8 to see where")
-	WScript.Quit
-Else	
-End If
+CheckInputFiles(HostFile)
 
 'File containing a list of commands to perform on each router. One command per line.
 CommandsFile = objD.Prompt("Enter filename and Path to the commands file","Command File Name & Path",CommandsFile)
 
 'Check file for invalid characters
-If CheckInputFiles(CommandsFile) = FALSE then
-	MsgBox("Commands File contains invalid characters. Often this is Extended Dash, hidden as a dash. Open the file in Notepad++ and set Encoding to UTF-8 to see where")
-	WScript.Quit
-Else	
-End If
+CheckInputFiles(CommandsFile)
 
 'Folder to recieve the log files
 Logfiles = objD.Prompt("Enter folder Path to save Log files In.","Log Folder Path",Logfiles)
@@ -294,15 +286,26 @@ End Function
 'Return     : CheckInputFiles -> Returns False if the files contains extended ASCII otherwise returns True.
 '----------------------------------------------------------------------------------------------------------------------------
 Function CheckInputFiles(Filename)
-	Set File = FSO.opentextfile(Filename, ForReading, False)
-	Do Until File.atEndOfStream
-		Character = File.Read(1) 'Read a character
-		If Asc(Character) > 126 then
-			CheckInputFiles = FALSE 'Extended ASCII is Present
-			Exit Do
-		Else
-			CheckInputFiles = TRUE  'Extended ASCII is Not Present
-		End If
+	CheckLineNum = 1
+	
+	Set CheckFile = FSO.opentextfile(Filename, ForReading, False)
+	Do Until CheckFile.atEndOfStream
+		CheckLine = CheckFile.ReadLine 'Read a line at a time
+		For CheckCharNum = 1 to Len(CheckLine)
+			Character = Mid(CheckLine,CheckCharNum,1) 'Read a character at a time
+			If Asc(Character) > 126 then
+				MsgBox _
+				"Input File contains invalid characters." & vbCrLf & _
+				"Filename " & Filename & vbCrLf & _
+				"Character is at line " & CheckLineNum & vbCrLf & _
+				"Character Number " & CheckCharNum
+				WScript.Quit
+			Else
+				CheckInputFiles = TRUE  'Extended ASCII is Not Present
+			End If
+		Next
+		CheckLineNum = CheckLineNum + 1
 	Loop
-	File.Close()
+	CheckFile.Close()
 End Function
+															
