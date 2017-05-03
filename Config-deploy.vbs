@@ -80,7 +80,7 @@ While Not Hosts.atEndOfStream
 	If ( crt.Session.Connected ) Then
 		objsc.Synchronous = True
 		'<-------------------- Create logfile for command/logfile changes
-		objse.logfilename = Logfiles & "\" & IP & "%Y%M%D-%h%m & ".cfg"
+		objse.logfilename = Logfiles & "\" & IP & "-" & %Y%M%D-%h%m & ".cfg"
 		objse.Log(True) '<-- This opens the logfile and captures the SecureCRT output to the timestamped ".cfg" file
 		Success = TRUE
 		IP = LEFT(IP & "        ", 15) 'Pad the IP with spaces on the right so the text files format nicely
