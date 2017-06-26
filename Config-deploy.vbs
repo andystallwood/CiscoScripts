@@ -19,31 +19,51 @@ FailCount = 0
 NoConnectCount = 0
 SuccessCount = 0
 
-'Directory for input and log files
-Directory = objD.Prompt("Enter Folder Path for the input and output files","Folder Path","U:\script\")
+'Input all parameters as a comma seperated string
+AdvancedMode = MsgBox ("Enter all parameters as one string?" & vbCrLf & "If you don't know what this is, select No :-)" , vbYesNo, "Advanced Mode?")
 
-HostFile = Directory & "Hosts.csv"
-CommandsFile = Directory & "Commands.csv"
-Logfiles = Directory & "logs\"
+If AdvancedMode = vbYes Then
+	ParamString = objD.Prompt("Enter comma seperated string for input and output files", _
+		"String", _
+		"U:\script\Hosts.csv,U:\script\Commands.csv,U:\script\logs\,Username,Password")
+	ParamInputs = Split(ParamString,",")
+	HostFile = ParamInputs(0)
+	CommandsFile = ParamInputs(1)
+	Logfiles =  ParamInputs(2)
+	User = ParamInputs(3)
+	Pass =  ParamInputs(4)
+	
+	'Check file for invalid characters
+	CheckInputFiles(HostFile)
+	CheckInputFiles(CommandsFile)
 
-'File containing a list of Cisco Device IPs to perform the change on. One IP per line.
-HostFile = objD.Prompt("Enter filename and Path to the hosts file","Hosts File Name & Path",HostFile)
+Else
+	'Directory for input and log files
+	Directory = objD.Prompt("Enter Folder Path for the input and output files","Folder Path","U:\script\")
+	
+	HostFile = Directory & "Hosts.csv"
+	CommandsFile = Directory & "Commands.csv"
+	Logfiles = Directory & "logs\"
 
-'Check file for invalid characters
-CheckInputFiles(HostFile)
+	'File containing a list of Cisco Device IPs to perform the change on. One IP per line.
+	HostFile = objD.Prompt("Enter filename and Path to the hosts file","Hosts File Name & Path",HostFile)
 
-'File containing a list of commands to perform on each router. One command per line.
-CommandsFile = objD.Prompt("Enter filename and Path to the commands file","Command File Name & Path",CommandsFile)
+	'Check file for invalid characters
+	CheckInputFiles(HostFile)
 
-'Check file for invalid characters
-CheckInputFiles(CommandsFile)
+	'File containing a list of commands to perform on each router. One command per line.
+	CommandsFile = objD.Prompt("Enter filename and Path to the commands file","Command File Name & Path",CommandsFile)
 
-'Folder to recieve the log files
-Logfiles = objD.Prompt("Enter folder Path to save Log files In.","Log Folder Path",Logfiles)
+	'Check file for invalid characters
+	CheckInputFiles(CommandsFile)
 
-User = objD.Prompt("Enter username to get into devices","Username","xxxxxxxxxx")
-
-Pass = objD.Prompt("Enter password to get into devices","Password","xxxxxxxx", TRUE)
+	'Folder to recieve the log files
+	Logfiles = objD.Prompt("Enter folder Path to save Log files In.","Log Folder Path",Logfiles)
+	
+	User = objD.Prompt("Enter username to get into devices","Username","xxxxxxxxxx")
+	
+	Pass = objD.Prompt("Enter password to get into devices","Password","xxxxxxxx", TRUE)
+End If
 
 If FSO.FolderExists(Logfiles) Then
 Else
@@ -308,4 +328,3 @@ Function CheckInputFiles(Filename)
 	Loop
 	CheckFile.Close()
 End Function
-															
