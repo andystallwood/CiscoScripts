@@ -1,5 +1,6 @@
 # $language = "VBScript"
 # $interface = "1.0"
+'Version 24 2018_06_27
 Dim FSO, Shell
 Const ForReading = 1
 Const ForWriting = 2
