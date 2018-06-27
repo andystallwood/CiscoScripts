@@ -1,6 +1,6 @@
 # $language = "VBScript"
 # $interface = "1.0"
-'Version 26 2018_06_27
+'Version 27 2018_06_27
 Dim FSO, Shell
 Const ForReading = 1
 Const ForWriting = 2
@@ -262,15 +262,15 @@ Function ProcessLine (ConfigLine, Logfiles, DeviceLine)
 		TestSuccess = objSc.WaitForString(Output,5)
 		
 		if TestSuccess = FALSE And WarnOrFail = "warn" then 'Output not found, and a warning
-			ErrorFile.writeline IP & " " & HostName & " Test Warning for " & CommandStart & Parameter & CommandEnd at " & Now() & ". Deployment Batch Started at " & DeployStart
+			ErrorFile.writeline IP & " " & HostName & " Test Warning for " & CommandStart & Parameter & CommandEnd & " at " & Now() & ". Deployment Batch Started at " & DeployStart
 			ProcessLine = 1 'Warning
 			
 		elseif TestSuccess = FALSE And WarnOrFail = "fail" then 'Output not found, and a failure
-			ErrorFile.writeline IP &  " " & HostName & " Test Failure for " & CommandStart & Parameter & CommandEnd & "Exiting Device at " & Now() & ". Deployment Batch Started at " & DeployStart
+			ErrorFile.writeline IP &  " " & HostName & " Test Failure for " & CommandStart & Parameter & CommandEnd & ". Exiting Device at " & Now() & ". Deployment Batch Started at " & DeployStart
 			ProcessLine = 2 'Failure
 			
 		elseif TestSuccess = FALSE then
-			ErrorFile.writeline IP & " " & HostName & " Command Check failed for " & CommandStart & Parameter & CommandEnd ". Exiting Device at " & Now() &". Error in Input File (WarnOrFail needs to be warn or fail). Deployment Batch Started at " & DeployStart
+			ErrorFile.writeline IP & " " & HostName & " Command Check failed for " & CommandStart & Parameter & CommandEnd & ". Exiting Device at " & Now() &". Error in Input File (WarnOrFail needs to be warn or fail). Deployment Batch Started at " & DeployStart
 			ProcessLine = 3 'Something has gone wrong with the input file
 			
 		else
