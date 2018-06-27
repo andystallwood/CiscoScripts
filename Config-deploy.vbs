@@ -1,6 +1,6 @@
 # $language = "VBScript"
 # $interface = "1.0"
-'Version 24 2018_06_27
+'Version 25 2018_06_27
 Dim FSO, Shell
 Const ForReading = 1
 Const ForWriting = 2
@@ -277,7 +277,8 @@ Function ProcessLine (ConfigLine, Logfiles, DeviceLine)
 			ProcessLine = 0 'Success
 			
 		end if
-	ErrorFile.writeline IP & " " & HostName & " Command Check Failed. Exiting Device. Possible Error in Input File at " & Now() & ". Deployment Batch Started at " & DeployStart											
+	else												
+		ErrorFile.writeline IP & " " & HostName & " Command Check Failed. Exiting Device. Possible Error in Input File at " & Now() & ". Deployment Batch Started at " & DeployStart											
 	end if
 End Function
 
