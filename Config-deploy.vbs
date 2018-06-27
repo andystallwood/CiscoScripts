@@ -253,7 +253,7 @@ Function ProcessLine (ConfigLine, Logfiles, DeviceLine)
 		If ConfigSuccess = TRUE then
 			ProcessLine = 0 'Success
 		Else
-			ErrorFile.writeline IP &  " " & HostName & " Failure. Exiting Device at " & Now() & " . Deployment Batch Started at " & DeployStart			
+			ErrorFile.writeline IP &  " " & HostName & " Config Command Failure. Exiting Device at " & Now() & ". Deployment Batch Started at " & DeployStart			
 			ProcessLine = 2 'Failure
 		End If
 		
@@ -261,21 +261,22 @@ Function ProcessLine (ConfigLine, Logfiles, DeviceLine)
 		TestSuccess = objSc.WaitForString(Output,5)
 		
 		if TestSuccess = FALSE And WarnOrFail = "warn" then 'Output not found, and a warning
-			ErrorFile.writeline IP & " " & HostName & " Warning at " & Now() & ". Deployment Batch Started at " & DeployStart
+			ErrorFile.writeline IP & " " & HostName & " Test Warning at " & Now() & ". Deployment Batch Started at " & DeployStart
 			ProcessLine = 1 'Warning
 			
 		elseif TestSuccess = FALSE And WarnOrFail = "fail" then 'Output not found, and a failure
-			ErrorFile.writeline IP &  " " & HostName & " Failure. Exiting Device at " & Now() & ". Deployment Batch Started at " & DeployStart
+			ErrorFile.writeline IP &  " " & HostName & " Test Failure. Exiting Device at " & Now() & ". Deployment Batch Started at " & DeployStart
 			ProcessLine = 2 'Failure
 			
 		elseif TestSuccess = FALSE then
-			ErrorFile.writeline IP & " Command Check Failed. Exiting Device. Possible Error in Input File at " & Now() & ". Deployment Batch Started at " & DeployStart
+			ErrorFile.writeline IP & " " & HostName & " Command Check Failed. Exiting Device. Possible Error in Input File at " & Now() & ". Deployment Batch Started at " & DeployStart
 			ProcessLine = 3 'Something has gone wrong with the input file
 			
 		else
 			ProcessLine = 0 'Success
 			
 		end if
+	ErrorFile.writeline IP & " " & HostName & " Command Check Failed. Exiting Device. Possible Error in Input File at " & Now() & ". Deployment Batch Started at " & DeployStart											
 	end if
 End Function
 
