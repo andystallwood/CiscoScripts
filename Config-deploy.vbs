@@ -108,7 +108,7 @@ While Not Hosts.atEndOfStream
 		CorrectHost = objSc.WaitForString(HostName &">",5) 'Check for correct Prompt to be returned
 		If CorrectHost = TRUE then 'Hostname matches IP address
 			objSc.Send "enable" & vbCr
-			objSc.WaitForString"Password:"
+			objSc.WaitForString("Password:",0,True) 'Set bCaseInsensitive to True to pick up password: and Password:
 			objSc.Send Pass & vbCr
 			objSc.WaitForString"#"
 			objSc.Send "term length 0" & vbCr '<-- disables paging of screen output
