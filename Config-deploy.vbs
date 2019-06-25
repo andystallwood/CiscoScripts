@@ -1,6 +1,6 @@
 # $language = "VBScript"
 # $interface = "1.0"
-'Version 27 2018_06_27
+'Version 28 2019_06_25 - Removed case sensitivity for password prompt
 Dim FSO, Shell
 Const ForReading = 1
 Const ForWriting = 2
