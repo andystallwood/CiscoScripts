@@ -108,7 +108,7 @@ While Not Hosts.atEndOfStream
 		CorrectHost = objSc.WaitForString(HostName &">",5) 'Check for correct Prompt to be returned
 		If CorrectHost = TRUE then 'Hostname matches IP address
 			objSc.Send "enable" & vbCr
-			objSc.WaitForStrings("Password:","password:")
+			objSc.WaitForStrings"Password:","password:"
 			objSc.Send Pass & vbCr
 			objSc.WaitForString"#"
 			objSc.Send "term length 0" & vbCr '<-- disables paging of screen output
